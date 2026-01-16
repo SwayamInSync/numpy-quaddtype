@@ -389,6 +389,25 @@ quadprec_fromstr(char *s, void *dptr, char **endptr, PyArray_Descr *descr_generi
     return 0;
 }
 
+static npy_bool
+quadprec_nonzero(void *data, void *arr)
+{
+    PyArrayObject *arr_obj = (PyArrayObject *)arr;
+    QuadPrecDTypeObject *descr = (QuadPrecDTypeObject *)PyArray_DESCR(arr_obj);
+    QuadBackendType backend = descr->backend;
+
+    if (backend == BACKEND_SLEEF) {
+        Sleef_quad val;
+        memcpy(&val, data, sizeof(Sleef_quad));
+        return !Sleef_icmpeqq1(val, QUAD_PRECISION_ZERO);
+    }
+    else {
+        long double val;
+        memcpy(&val, data, sizeof(long double));
+        return val != 0.0L;
+    }
+}
+
 static PyType_Slot QuadPrecDType_Slots[] = {
         {NPY_DT_ensure_canonical, &ensure_canonical},
         {NPY_DT_common_instance, &common_instance},
@@ -398,6 +417,7 @@ static PyType_Slot QuadPrecDType_Slots[] = {
         {NPY_DT_getitem, &quadprec_getitem},
         {NPY_DT_default_descr, &quadprec_default_descr},
         {NPY_DT_get_constant, &quadprec_get_constant},
+        {NPY_DT_PyArray_ArrFuncs_nonzero, &quadprec_nonzero},
         {NPY_DT_PyArray_ArrFuncs_fill, &quadprec_fill},
         {NPY_DT_PyArray_ArrFuncs_scanfunc, &quadprec_scanfunc},
         {NPY_DT_PyArray_ArrFuncs_fromstr, &quadprec_fromstr},

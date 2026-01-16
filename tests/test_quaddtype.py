@@ -1531,6 +1531,30 @@ def test_unary_logical_not(x):
     assert isinstance(quad_result, (bool, np.bool_)), f"Result should be bool, got {type(quad_result)}"
 
 
+@pytest.mark.parametrize("val,expected", [
+    ("1.0", True),
+    ("0.5", True),
+    ("1e-100", True),
+    ("-1.0", True),
+    ("0.0", False),
+    ("-0.0", False),
+])
+def test_bool_0d_array(val, expected):
+    """
+    Test boolean conversion on 0-d QuadPrecision arrays.
+    
+    This tests that bool(np.array(QuadPrecision(x))) works correctly
+    and doesn't segfault due to missing dtype nonzero function.
+    """
+    quad_scalar = QuadPrecision(val)
+    arr_0d = np.array(quad_scalar)
+    # Ensure it's actually a 0-d array
+    assert arr_0d.ndim == 0, f"Expected 0-d array, got {arr_0d.ndim}-d"
+    
+    # This should not segfault
+    result = bool(arr_0d)
+    assert result == expected, f"bool(np.array(QuadPrecision({val}))) should be {expected}, got {result}"
+
 @pytest.mark.parametrize("op", ["amin", "amax", "nanmin", "nanmax"])
 @pytest.mark.parametrize("a", ["3.0", "12.5", "100.0", "0.0", "-0.0", "inf", "-inf", "nan", "-nan"])
 @pytest.mark.parametrize("b", ["3.0", "12.5", "100.0", "0.0", "-0.0", "inf", "-inf", "nan", "-nan"])
