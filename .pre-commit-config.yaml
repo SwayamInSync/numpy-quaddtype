@@ -1,0 +1,58 @@
+repos:
+  - repo: local
+    hooks:
+      - id: generate-compilation-database
+        name: Generate compilation database
+        files: (meson\.build$|.*\.(c|h)$)
+        language: system
+        require_serial: true
+        entry: |
+          bash -c 'mkdir -p build && pip install build meson-python patchelf wheel && meson setup build && python -m build --wheel --no-isolation -Cbuilddir=build';
+        fail_fast: false
+  - repo: https://github.com/pocc/pre-commit-hooks
+    rev: v1.3.5
+    hooks:
+      - id: clang-tidy
+        name: clang-tidy
+        args: [-p=build]
+        files: (.*\.(c|h)$)
+      - id: clang-format
+        args: ['--no-diff', -i]
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-ast
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: v0.0.254
+    hooks:
+    - id: ruff
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.0.0-alpha.6
+    hooks:
+      - id: prettier
+        types:
+          [
+            markdown,
+            yaml,
+          ]
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        name: isort (python)
+      - id: isort
+        name: isort (cython)
+        types: [cython]
+      - id: isort
+        name: isort (pyi)
+        types: [pyi]
+  - repo: https://github.com/psf/black
+    rev: 23.1.0
+    hooks:
+      - id: black
+        name: 'black'
+        files: '.*\.py'

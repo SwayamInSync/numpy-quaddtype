@@ -45,9 +45,9 @@ docs = [
 ]
 
 [project.urls]
-Repository = "https://github.com/numpy/numpy-user-dtypes"
-Documentation = "https://github.com/numpy/numpy-user-dtypes/tree/main/quaddtype"
-Issues = "https://github.com/numpy/numpy-user-dtypes/issues"
+Repository = "https://github.com/numpy/numpy-quaddtype"
+Documentation = "https://numpy.org/numpy-quaddtype/"
+Issues = "https://github.com/numpy/numpy-quaddtype/issues"
 
 [tool.pyright]
 include = ["src/numpy_quaddtype/*.pyi"]

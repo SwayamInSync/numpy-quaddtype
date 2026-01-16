@@ -1,0 +1,44 @@
+name: Validate static types in quaddtype
+permissions: read-all
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/typecheck.yml
+      - src/numpy_quaddtype/**
+      - meson.build
+      - pyproject.toml
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  typecheck_quaddtype:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: astral-sh/setup-uv@v7.2.0
+        with:
+          activate-environment: true
+          python-version: "3.12"
+
+      - name: install
+        run: |
+          uv pip install mypy pyright .
+
+      - name: pyright
+        run: pyright
+
+      - name: pyright --verifytypes
+        run: pyright --ignoreexternal --verifytypes numpy_quaddtype
+
+      - name: mypy
+        run: mypy --no-incremental --cache-dir=/dev/null .
+
+      - name: stubtest
+        run: stubtest --mypy-config-file pyproject.toml numpy_quaddtype
