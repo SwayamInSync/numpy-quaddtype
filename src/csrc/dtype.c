@@ -3,6 +3,7 @@
 #include <sleef.h>
 #include <sleefquad.h>
 #include <ctype.h>
+#include <math.h>
 
 #define PY_ARRAY_UNIQUE_SYMBOL QuadPrecType_ARRAY_API
 #define PY_UFUNC_UNIQUE_SYMBOL QuadPrecType_UFUNC_API
@@ -431,14 +432,14 @@ quadprec_compare(void *a, void *b, void *arr)
         long double val_b = *(long double *)b;
         
         // NaN is considered greater than all other values for sorting
-        int a_is_nan = (val_a != val_a);
-        int b_is_nan = (val_b != val_b);
+        int a_is_nan = isnan(val_a);
+        int b_is_nan = isnan(val_b);
         
         if (a_is_nan && b_is_nan) {
             return 0;
         }
         if (a_is_nan) {
-            return 1;
+            return 1;  /* NaN goes to the end */
         }
         if (b_is_nan) {
             return -1;
