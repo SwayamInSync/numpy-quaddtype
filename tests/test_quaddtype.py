@@ -1531,6 +1531,66 @@ def test_unary_logical_not(x):
     assert isinstance(quad_result, (bool, np.bool_)), f"Result should be bool, got {type(quad_result)}"
 
 
+@pytest.mark.parametrize("val", [
+    # Small positive values that truncate to 0 when cast to int
+    0.5, 0.1, 0.01, 0.001, 0.0001,
+    1e-10, 1e-50, 1e-100, 1e-300,
+    # Small negative values
+    -0.5, -0.1, -0.01, -0.001, -0.0001,
+    -1e-10, -1e-50, -1e-100, -1e-300,
+    # Values just above/below 1
+    0.9999999999, 1.0000000001,
+    # Regular non-zero values (sanity check)
+    1.0, -1.0, 2.0, 100.0, 1e10,
+])
+def test_bool_cast_small_nonzero_values_are_truthy(val):
+    """
+    Test that small non-zero values correctly cast to True.
+    
+    This tests for a bug where casting to bool via int truncation
+    would make small values like 0.5 falsely become False.
+    """
+    quad_val = QuadPrecision(str(val))
+    
+    # Cast to bool array
+    bool_result = np.array([quad_val]).astype(bool)[0]
+    py_bool = bool(quad_val)
+    
+    # All non-zero values should be True
+    assert bool_result == True, f"QuadPrecision({val}) should be truthy, got {bool_result}"
+    assert py_bool == True, f"Python bool(QuadPrecision({val})) should be truthy, got {py_bool}"
+
+
+@pytest.mark.parametrize("val", [
+    0.0, -0.0,
+])
+def test_bool_cast_zero_is_falsy(val):
+    """Test that zero values correctly cast to False."""
+    quad_val = QuadPrecision(str(val))
+    
+    # Cast to bool array
+    bool_result = np.array([quad_val]).astype(bool)[0]
+    py_bool = bool(quad_val)
+    
+    # Zero values should be False
+    assert bool_result == False, f"QuadPrecision({val}) should be falsy, got {bool_result}"
+    assert py_bool == False, f"Python bool(QuadPrecision({val})) should be falsy, got {py_bool}"
+
+def test_bool_cast_array():
+    """Test boolean casting on arrays with mixed values."""
+    # Array with zeros and small non-zero values
+    values = ["0.0", "0.5", "-0.0", "1e-100", "1.0", "-1e-50"]
+    quad_arr = np.array([QuadPrecision(v) for v in values])
+    
+    bool_arr = quad_arr.astype(bool)
+    
+    # Expected: [False, True, False, True, True, True]
+    expected = [False, True, False, True, True, True]
+    
+    for i, (got, exp) in enumerate(zip(bool_arr, expected)):
+        assert got == exp, f"Index {i} (value={values[i]}): expected {exp}, got {got}"
+
+
 @pytest.mark.parametrize("op", ["amin", "amax", "nanmin", "nanmax"])
 @pytest.mark.parametrize("a", ["3.0", "12.5", "100.0", "0.0", "-0.0", "inf", "-inf", "nan", "-nan"])
 @pytest.mark.parametrize("b", ["3.0", "12.5", "100.0", "0.0", "-0.0", "inf", "-inf", "nan", "-nan"])

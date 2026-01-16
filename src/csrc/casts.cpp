@@ -1216,7 +1216,7 @@ inline npy_bool
 from_quad<spec_npy_bool>(const quad_value *x, QuadBackendType backend)
 {
     if (backend == BACKEND_SLEEF) {
-        return Sleef_cast_to_int64q1(x->sleef_value) != 0;
+        return !Sleef_icmpeqq1(x->sleef_value, QUAD_PRECISION_ZERO);
     }
     else {
         return x->longdouble_value != 0;
