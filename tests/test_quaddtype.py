@@ -5745,3 +5745,32 @@ class TestSortingOperations:
         expected = np.array([1, 2, 3, 5, 8, 9], dtype=QuadPrecDType(backend=backend))
         np.testing.assert_array_equal(sorted_x, expected)
 
+
+@pytest.mark.parametrize("backend", ["sleef", "longdouble"])
+def test_argmax_argmin(backend):
+    """Test argmax and argmin operations."""
+    # Basic integers
+    x = np.array([3, 1, 4, 1, 5, 9, 2, 6], dtype=QuadPrecDType(backend=backend))
+    assert np.argmax(x) == 5
+    assert np.argmin(x) == 1
+    
+    # With infinity
+    x = np.array([1, float('inf'), 2, float('-inf'), 3], dtype=QuadPrecDType(backend=backend))
+    assert np.argmax(x) == 1   # +inf is max
+    assert np.argmin(x) == 3   # -inf is min
+    
+    # With NaN (NaN should be ignored)
+    x = np.array([1, float('nan'), 5, 2], dtype=QuadPrecDType(backend=backend))
+    assert np.argmax(x) == 2
+    assert np.argmin(x) == 0
+    
+    # All NaN returns index 0
+    x = np.array([float('nan'), float('nan')], dtype=QuadPrecDType(backend=backend))
+    assert np.argmax(x) == 0
+    assert np.argmin(x) == 0
+    
+    # 2D with axis
+    x = np.array([[1, 5, 3], [4, 2, 6]], dtype=QuadPrecDType(backend=backend))
+    assert np.argmax(x) == 5  # flattened
+    np.testing.assert_array_equal(np.argmax(x, axis=0), [1, 0, 1])
+    np.testing.assert_array_equal(np.argmax(x, axis=1), [1, 2])
