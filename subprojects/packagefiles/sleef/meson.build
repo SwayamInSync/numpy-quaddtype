@@ -32,6 +32,7 @@ sleef_configure = run_command([
     '-DSLEEF_BUILD_SHARED_LIBS=OFF',
     '-DSLEEF_BUILD_TESTS=OFF',
     '-DSLEEF_BUILD_INLINE_HEADERS=OFF',
+    '-DSLEEF_ENABLE_TLFLOAT=OFF', # this is only used for testing in SLEEF, not runtime
     '-DCMAKE_POSITION_INDEPENDENT_CODE=ON',
     '-DCMAKE_INSTALL_PREFIX=' + meson.current_build_dir() / sleef_install_dir
 ] + sleef_simd_flags, check: false, capture: true)
@@ -72,10 +73,4 @@ sleefquad_dep = declare_dependency(
     dependencies: [sleef_build_dep, sleef_dep],
     compile_args: compile_args_list,
     link_args: ['-L' + meson.current_build_dir() / sleef_install_dir / 'lib', '-L' + meson.current_build_dir() / sleef_install_dir / 'lib64', '-lsleefquad']
-)
-
-tlfloat_dep = declare_dependency(
-    dependencies: [sleef_build_dep],
-    compile_args: compile_args_list,
-    link_args: ['-L' + meson.current_build_dir() / sleef_install_dir / 'lib', '-L' + meson.current_build_dir() / sleef_install_dir / 'lib64', '-L' + meson.current_build_dir() / sleef_build_dir / 'submodules' / 'tlfloat' / 'lib', '-L' + meson.current_build_dir() / sleef_build_dir / 'submodules' / 'tlfloat' / 'lib64', '-ltlfloat']
 )

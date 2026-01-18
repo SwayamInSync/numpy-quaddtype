@@ -27,9 +27,8 @@ if sleef_dep.found() and sleef_dep.type_name() != 'internal' and sleef_dep.versi
   # SLEEF found system-wide - verify quad-precision support
   cpp = meson.get_compiler('cpp')
   sleefquad_lib = cpp.find_library('sleefquad', required: false)
-  tlfloat_lib = cpp.find_library('tlfloat', required: false)
   
-  if sleefquad_lib.found() and tlfloat_lib.found()
+  if sleefquad_lib.found()
     sleefquad_test_code = '''
     #include <sleefquad.h>
 
@@ -43,7 +42,7 @@ if sleef_dep.found() and sleef_dep.type_name() != 'internal' and sleef_dep.versi
     # this should compile and link
     quad_works = cpp.links(
       sleefquad_test_code,
-      dependencies: [sleef_dep, sleefquad_lib, tlfloat_lib],
+      dependencies: [sleef_dep, sleefquad_lib],
       name: 'SLEEF quad-precision support'
     )
     
@@ -51,21 +50,12 @@ if sleef_dep.found() and sleef_dep.type_name() != 'internal' and sleef_dep.versi
       sleefquad_dep = declare_dependency(
         dependencies: [sleef_dep, sleefquad_lib]
       )
-      tlfloat_dep = declare_dependency(
-        dependencies: [tlfloat_lib]
-      )
       use_system_sleef = true
     else
       fallback_reason = 'System-wide SLEEF installation found but a test for quad precision support failed.'
     endif
   else
-    if not sleefquad_lib.found() and not tlfloat_lib.found()
-      fallback_reason = 'System-wide SLEEF installation does not have sleefquad and tlfloat libraries.'
-    elif not sleefquad_lib.found()
-      fallback_reason = 'System-wide SLEEF installation does not have the sleefquad library.'
-    else
-      fallback_reason = 'System-wide SLEEF installation does not have the tlfloat library.'
-    endif
+    fallback_reason = 'System-wide SLEEF installation does not have the sleefquad library.'
   endif
 else
   if sleef_dep.found() and sleef_dep.type_name() != 'internal'
@@ -81,7 +71,6 @@ else
   sleef_subproj = subproject('sleef')
   sleef_dep = sleef_subproj.get_variable('sleef_dep')
   sleefquad_dep = sleef_subproj.get_variable('sleefquad_dep')
-  tlfloat_dep = sleef_subproj.get_variable('tlfloat_dep')
   warning(fallback_reason)
   message('Proceeding with vendored SLEEF subproject instead')
 endif
@@ -105,7 +94,7 @@ message('Using NumPy version: @0@'.format(numpy_version))
 npymath_path = incdir_numpy / '..' / 'lib'
 npymath_lib = c.find_library('npymath', dirs: npymath_path)
 
-dependencies = [py_dep, qblas_dep, sleef_dep, sleefquad_dep, tlfloat_dep, npymath_lib]
+dependencies = [py_dep, qblas_dep, sleef_dep, sleefquad_dep, npymath_lib]
 
 # Add OpenMP dependency (optional, for threading)
 openmp_dep = dependency('openmp', required: false, static: false)
