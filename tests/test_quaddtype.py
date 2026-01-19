@@ -1531,6 +1531,90 @@ def test_unary_logical_not(x):
     assert isinstance(quad_result, (bool, np.bool_)), f"Result should be bool, got {type(quad_result)}"
 
 
+@pytest.mark.parametrize("val,expected", [
+    ("1.0", True),
+    ("0.5", True),
+    ("1e-100", True),
+    ("-1.0", True),
+    ("0.0", False),
+    ("-0.0", False),
+])
+def test_bool_0d_array(val, expected):
+    """
+    Test boolean conversion on 0-d QuadPrecision arrays.
+    
+    This tests that bool(np.array(QuadPrecision(x))) works correctly
+    and doesn't segfault due to missing dtype nonzero function.
+    """
+    quad_scalar = QuadPrecision(val)
+    arr_0d = np.array(quad_scalar)
+    # Ensure it's actually a 0-d array
+    assert arr_0d.ndim == 0, f"Expected 0-d array, got {arr_0d.ndim}-d"
+    
+    # This should not segfault
+    result = bool(arr_0d)
+    assert result == expected, f"bool(np.array(QuadPrecision({val}))) should be {expected}, got {result}"
+    
+@pytest.mark.parametrize("val", [
+    # Small positive values that truncate to 0 when cast to int
+    0.5, 0.1, 0.01, 0.001, 0.0001,
+    1e-10, 1e-50, 1e-100, 1e-300,
+    # Small negative values
+    -0.5, -0.1, -0.01, -0.001, -0.0001,
+    -1e-10, -1e-50, -1e-100, -1e-300,
+    # Values just above/below 1
+    0.9999999999, 1.0000000001,
+    # Regular non-zero values (sanity check)
+    1.0, -1.0, 2.0, 100.0, 1e10,
+])
+def test_bool_cast_small_nonzero_values_are_truthy(val):
+    """
+    Test that small non-zero values correctly cast to True.
+    
+    This tests for a bug where casting to bool via int truncation
+    would make small values like 0.5 falsely become False.
+    """
+    quad_val = QuadPrecision(str(val))
+    
+    # Cast to bool array
+    bool_result = np.array([quad_val]).astype(bool)[0]
+    py_bool = bool(quad_val)
+    
+    # All non-zero values should be True
+    assert bool_result == True, f"QuadPrecision({val}) should be truthy, got {bool_result}"
+    assert py_bool == True, f"Python bool(QuadPrecision({val})) should be truthy, got {py_bool}"
+
+
+@pytest.mark.parametrize("val", [
+    0.0, -0.0,
+])
+def test_bool_cast_zero_is_falsy(val):
+    """Test that zero values correctly cast to False."""
+    quad_val = QuadPrecision(str(val))
+    
+    # Cast to bool array
+    bool_result = np.array([quad_val]).astype(bool)[0]
+    py_bool = bool(quad_val)
+    
+    # Zero values should be False
+    assert bool_result == False, f"QuadPrecision({val}) should be falsy, got {bool_result}"
+    assert py_bool == False, f"Python bool(QuadPrecision({val})) should be falsy, got {py_bool}"
+
+def test_bool_cast_array():
+    """Test boolean casting on arrays with mixed values."""
+    # Array with zeros and small non-zero values
+    values = ["0.0", "0.5", "-0.0", "1e-100", "1.0", "-1e-50"]
+    quad_arr = np.array([QuadPrecision(v) for v in values])
+    
+    bool_arr = quad_arr.astype(bool)
+    
+    # Expected: [False, True, False, True, True, True]
+    expected = [False, True, False, True, True, True]
+    
+    for i, (got, exp) in enumerate(zip(bool_arr, expected)):
+        assert got == exp, f"Index {i} (value={values[i]}): expected {exp}, got {got}"
+
+
 @pytest.mark.parametrize("op", ["amin", "amax", "nanmin", "nanmax"])
 @pytest.mark.parametrize("a", ["3.0", "12.5", "100.0", "0.0", "-0.0", "inf", "-inf", "nan", "-nan"])
 @pytest.mark.parametrize("b", ["3.0", "12.5", "100.0", "0.0", "-0.0", "inf", "-inf", "nan", "-nan"])
@@ -5688,3 +5772,99 @@ def test_quadprecision_large_exponents(val, pow):
     value_str = mp.nstr(mp.mpf(str(value)), 33)
     expected_str = mp.nstr(mp_value, 33)
     assert value_str == expected_str, f"QuadPrecision({val}) ** {pow} = {value_str}, expected {expected_str}"
+    
+class TestSortingOperations:
+    """Test suite for sorting operations using the compare slot."""
+
+    @pytest.mark.parametrize("backend", ["sleef", "longdouble"])
+    @pytest.mark.parametrize("input_arr,expected_sorted,expected_indices", [
+        # Basic integers: [3, 1, 4, 1, 5, 9, 2, 6] -> sorted: [1, 1, 2, 3, 4, 5, 6, 9]
+        ([3, 1, 4, 1, 5, 9, 2, 6], [1, 1, 2, 3, 4, 5, 6, 9], [1, 3, 6, 0, 2, 4, 7, 5]),
+        # Negative numbers
+        ([3, -1, 4, -5, 2, -6], [-6, -5, -1, 2, 3, 4], [5, 3, 1, 4, 0, 2]),
+        # Floating-point values
+        ([3.14, 1.41, 2.72, 0.57], [0.57, 1.41, 2.72, 3.14], [3, 1, 2, 0]),
+        # Single element
+        ([42], [42], [0]),
+        # Empty array
+        ([], [], []),
+    ])
+    def test_sort_and_argsort(self, backend, input_arr, expected_sorted, expected_indices):
+        """Test sort and argsort with various inputs."""
+        x = np.array(input_arr, dtype=QuadPrecDType(backend=backend))
+        
+        # Test sort
+        sorted_x = np.sort(x)
+        expected = np.array(expected_sorted, dtype=QuadPrecDType(backend=backend))
+        np.testing.assert_array_equal(sorted_x, expected)
+        
+        # Test argsort
+        indices = np.argsort(x)
+        np.testing.assert_array_equal(indices, np.array(expected_indices))
+        # Verify argsort returns integer type
+        assert np.issubdtype(indices.dtype, np.integer)
+
+    @pytest.mark.parametrize("backend", ["sleef", "longdouble"])
+    @pytest.mark.parametrize("input_arr,check_fn", [
+        # NaN should be sorted to the end
+        ([3, float('nan'), 1, 2], lambda s: s[0] == 1 and s[1] == 2 and s[2] == 3 and np.isnan(s[3])),
+        # Inf handling
+        ([3, float('inf'), 1, float('-inf'), 2], 
+         lambda s: s[0] == float('-inf') and s[1] == 1 and s[2] == 2 and s[3] == 3 and s[4] == float('inf')),
+        # Multiple NaNs
+        ([float('nan'), 1, float('nan'), 2], lambda s: s[0] == 1 and s[1] == 2 and np.isnan(s[2]) and np.isnan(s[3])),
+    ])
+    def test_sort_special_values(self, backend, input_arr, check_fn):
+        """Test sorting with NaN and Inf values."""
+        x = np.array(input_arr, dtype=QuadPrecDType(backend=backend))
+        sorted_x = np.sort(x)
+        assert check_fn(sorted_x)
+
+    @pytest.mark.parametrize("kind", ["quicksort", "mergesort", "heapsort", "stable"])
+    @pytest.mark.parametrize("backend", ["sleef", "longdouble"])
+    def test_sort_algorithms(self, backend, kind):
+        """Test that different sorting algorithms work with the compare function."""
+        x = np.array([5, 2, 8, 1, 9, 3], dtype=QuadPrecDType(backend=backend))
+        sorted_x = np.sort(x, kind=kind)
+        expected = np.array([1, 2, 3, 5, 8, 9], dtype=QuadPrecDType(backend=backend))
+        np.testing.assert_array_equal(sorted_x, expected)
+
+
+@pytest.mark.parametrize("backend", ["sleef", "longdouble"])
+def test_argmax_argmin(backend):
+    """Test argmax and argmin operations."""
+    # Basic integers
+    x = np.array([3, 1, 4, 1, 5, 9, 2, 6], dtype=QuadPrecDType(backend=backend))
+    assert np.argmax(x) == 5
+    assert np.argmin(x) == 1
+    
+    # With infinity
+    x = np.array([1, float('inf'), 2, float('-inf'), 3], dtype=QuadPrecDType(backend=backend))
+    assert np.argmax(x) == 1   # +inf is max
+    assert np.argmin(x) == 3   # -inf is min
+    
+    # With NaN (NaN should be ignored)
+    x = np.array([1, float('nan'), 5, 2], dtype=QuadPrecDType(backend=backend))
+    assert np.argmax(x) == 2
+    assert np.argmin(x) == 0
+    
+    # All NaN returns index 0
+    x = np.array([float('nan'), float('nan')], dtype=QuadPrecDType(backend=backend))
+    assert np.argmax(x) == 0
+    assert np.argmin(x) == 0
+    
+    # 2D with axis
+    x = np.array([[1, 5, 3], [4, 2, 6]], dtype=QuadPrecDType(backend=backend))
+    assert np.argmax(x) == 5  # flattened
+    assert np.argmin(x) == 0  # flattened
+    np.testing.assert_array_equal(np.argmax(x, axis=0), [1, 0, 1])
+    np.testing.assert_array_equal(np.argmin(x, axis=0), [0, 1, 0])
+    np.testing.assert_array_equal(np.argmax(x, axis=1), [1, 2])
+    np.testing.assert_array_equal(np.argmin(x, axis=1), [0, 1])
+    
+    # Empty array raises ValueError
+    x = np.array([], dtype=QuadPrecDType(backend=backend))
+    with pytest.raises(ValueError):
+        np.argmax(x)
+    with pytest.raises(ValueError):
+        np.argmin(x)

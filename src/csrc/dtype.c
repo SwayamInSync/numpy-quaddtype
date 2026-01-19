@@ -3,6 +3,7 @@
 #include <sleef.h>
 #include <sleefquad.h>
 #include <ctype.h>
+#include <math.h>
 
 #define PY_ARRAY_UNIQUE_SYMBOL QuadPrecType_ARRAY_API
 #define PY_UFUNC_UNIQUE_SYMBOL QuadPrecType_UFUNC_API
@@ -389,6 +390,258 @@ quadprec_fromstr(char *s, void *dptr, char **endptr, PyArray_Descr *descr_generi
     return 0;
 }
 
+static npy_bool
+quadprec_nonzero(void *data, void *arr)
+{
+    PyArrayObject *arr_obj = (PyArrayObject *)arr;
+    QuadPrecDTypeObject *descr = (QuadPrecDTypeObject *)PyArray_DESCR(arr_obj);
+    QuadBackendType backend = descr->backend;
+
+    if (backend == BACKEND_SLEEF) {
+        Sleef_quad val;
+        memcpy(&val, data, sizeof(Sleef_quad));
+        return !Sleef_icmpeqq1(val, QUAD_PRECISION_ZERO);
+    }
+    else {
+        long double val;
+        memcpy(&val, data, sizeof(long double));
+        return val != 0.0L;
+    }
+}
+
+/*
+ * Compare function for sorting operations (argsort, sort, etc.)
+ * Implements PyArray_CompareFunc.
+ * Returns: negative if a < b, positive if a > b, 0 if equal
+ */
+static int
+quadprec_compare(void *a, void *b, void *arr)
+{
+    PyArrayObject *array = (PyArrayObject *)arr;
+    QuadPrecDTypeObject *descr = (QuadPrecDTypeObject *)PyArray_DESCR(array);
+    
+    if (descr->backend == BACKEND_SLEEF) {
+        Sleef_quad val_a = *(Sleef_quad *)a;
+        Sleef_quad val_b = *(Sleef_quad *)b;
+        
+        // NaN is considered greater than all other values for sorting
+        int a_is_nan = Sleef_iunordq1(val_a, val_a);
+        int b_is_nan = Sleef_iunordq1(val_b, val_b);
+        
+        if (a_is_nan && b_is_nan) {
+            return 0;
+        }
+        if (a_is_nan) {
+            return 1;  /* NaN goes to the end */
+        }
+        if (b_is_nan) {
+            return -1;
+        }
+        
+        if (Sleef_icmpltq1(val_a, val_b)) {
+            return -1;
+        }
+        if (Sleef_icmpgtq1(val_a, val_b)) {
+            return 1;
+        }
+        return 0;
+    }
+    else {
+        long double val_a = *(long double *)a;
+        long double val_b = *(long double *)b;
+        
+        // NaN is considered greater than all other values for sorting
+        int a_is_nan = isnan(val_a);
+        int b_is_nan = isnan(val_b);
+        
+        if (a_is_nan && b_is_nan) {
+            return 0;
+        }
+        if (a_is_nan) {
+            return 1;  /* NaN goes to the end */
+        }
+        if (b_is_nan) {
+            return -1;
+        }
+        
+        if (val_a < val_b) {
+            return -1;
+        }
+        if (val_a > val_b) {
+            return 1;
+        }
+        return 0;
+    }
+}
+
+/*
+ * Argmax function for np.argmax()
+ * Finds the index of the maximum element.
+ * NaN values are ignored unless all values are NaN.
+ */
+static int
+quadprec_argmax(char *data, npy_intp n, npy_intp *max_ind, void *arr)
+{
+    PyArrayObject *array = (PyArrayObject *)arr;
+    QuadPrecDTypeObject *descr = (QuadPrecDTypeObject *)PyArray_DESCR(array);
+    npy_intp elsize = descr->base.elsize;
+    
+    *max_ind = 0;
+    
+    if (descr->backend == BACKEND_SLEEF) {
+        // Find first non-NaN value as initial max
+        npy_intp start = 0;
+        Sleef_quad max_val;
+        for (start = 0; start < n; start++) {
+            max_val = *(Sleef_quad *)(data + start * elsize);
+            if (!Sleef_iunordq1(max_val, max_val)) {
+                *max_ind = start;
+                break;
+            }
+        }
+        
+        // If all values are NaN, return 0
+        if (start == n) {
+            *max_ind = 0;
+            return 0;
+        }
+        
+        // Find maximum
+        for (npy_intp i = start + 1; i < n; i++) {
+            Sleef_quad val = *(Sleef_quad *)(data + i * elsize);
+            
+            // Skip NaN values
+            if (Sleef_iunordq1(val, val)) {
+                continue;
+            }
+            
+            if (Sleef_icmpgtq1(val, max_val)) {
+                max_val = val;
+                *max_ind = i;
+            }
+        }
+    }
+    else {
+        // Find first non-NaN value as initial max
+        npy_intp start = 0;
+        long double max_val;
+        for (start = 0; start < n; start++) {
+            max_val = *(long double *)(data + start * elsize);
+            if (!isnan(max_val)) {
+                *max_ind = start;
+                break;
+            }
+        }
+        
+        // If all values are NaN, return 0
+        if (start == n) {
+            *max_ind = 0;
+            return 0;
+        }
+        
+        // Find maximum
+        for (npy_intp i = start + 1; i < n; i++) {
+            long double val = *(long double *)(data + i * elsize);
+            
+            // Skip NaN values
+            if (isnan(val)) {
+                continue;
+            }
+            
+            if (val > max_val) {
+                max_val = val;
+                *max_ind = i;
+            }
+        }
+    }
+    
+    return 0;
+}
+
+/*
+ * Argmin function for np.argmin()
+ * Finds the index of the minimum element.
+ * NaN values are ignored unless all values are NaN.
+ */
+static int
+quadprec_argmin(char *data, npy_intp n, npy_intp *min_ind, void *arr)
+{
+    PyArrayObject *array = (PyArrayObject *)arr;
+    QuadPrecDTypeObject *descr = (QuadPrecDTypeObject *)PyArray_DESCR(array);
+    npy_intp elsize = descr->base.elsize;
+    
+    *min_ind = 0;
+    
+    if (descr->backend == BACKEND_SLEEF) {
+        // Find first non-NaN value as initial min
+        npy_intp start = 0;
+        Sleef_quad min_val;
+        for (start = 0; start < n; start++) {
+            min_val = *(Sleef_quad *)(data + start * elsize);
+            if (!Sleef_iunordq1(min_val, min_val)) {
+                *min_ind = start;
+                break;
+            }
+        }
+        
+        // If all values are NaN, return 0
+        if (start == n) {
+            *min_ind = 0;
+            return 0;
+        }
+        
+        // Find minimum
+        for (npy_intp i = start + 1; i < n; i++) {
+            Sleef_quad val = *(Sleef_quad *)(data + i * elsize);
+            
+            // Skip NaN values
+            if (Sleef_iunordq1(val, val)) {
+                continue;
+            }
+            
+            if (Sleef_icmpltq1(val, min_val)) {
+                min_val = val;
+                *min_ind = i;
+            }
+        }
+    }
+    else {
+        // Find first non-NaN value as initial min
+        npy_intp start = 0;
+        long double min_val;
+        for (start = 0; start < n; start++) {
+            min_val = *(long double *)(data + start * elsize);
+            if (!isnan(min_val)) {
+                *min_ind = start;
+                break;
+            }
+        }
+        
+        // If all values are NaN, return 0
+        if (start == n) {
+            *min_ind = 0;
+            return 0;
+        }
+        
+        // Find minimum
+        for (npy_intp i = start + 1; i < n; i++) {
+            long double val = *(long double *)(data + i * elsize);
+            
+            // Skip NaN values
+            if (isnan(val)) {
+                continue;
+            }
+            
+            if (val < min_val) {
+                min_val = val;
+                *min_ind = i;
+            }
+        }
+    }
+    
+    return 0;
+}
+
 static PyType_Slot QuadPrecDType_Slots[] = {
         {NPY_DT_ensure_canonical, &ensure_canonical},
         {NPY_DT_common_instance, &common_instance},
@@ -398,6 +651,10 @@ static PyType_Slot QuadPrecDType_Slots[] = {
         {NPY_DT_getitem, &quadprec_getitem},
         {NPY_DT_default_descr, &quadprec_default_descr},
         {NPY_DT_get_constant, &quadprec_get_constant},
+        {NPY_DT_PyArray_ArrFuncs_nonzero, &quadprec_nonzero},
+        {NPY_DT_PyArray_ArrFuncs_compare, &quadprec_compare},
+        {NPY_DT_PyArray_ArrFuncs_argmax, &quadprec_argmax},
+        {NPY_DT_PyArray_ArrFuncs_argmin, &quadprec_argmin},
         {NPY_DT_PyArray_ArrFuncs_fill, &quadprec_fill},
         {NPY_DT_PyArray_ArrFuncs_scanfunc, &quadprec_scanfunc},
         {NPY_DT_PyArray_ArrFuncs_fromstr, &quadprec_fromstr},

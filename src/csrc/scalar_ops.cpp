@@ -17,6 +17,7 @@ extern "C" {
 #include "ops.hpp"
 #include "scalar_ops.h"
 #include "quad_common.h"
+#include "constants.hpp"
 
 template <unary_op_quad_def sleef_op, unary_op_longdouble_def longdouble_op>
 static PyObject *
@@ -36,14 +37,14 @@ quad_unary_func(QuadPrecisionObject *self)
     return (PyObject *)res;
 }
 
-PyObject *
+int
 quad_nonzero(QuadPrecisionObject *self)
 {
     if (self->backend == BACKEND_SLEEF) {
-        return PyBool_FromLong(Sleef_icmpneq1(self->value.sleef_value, Sleef_cast_from_int64q1(0)));
+        return !Sleef_icmpeqq1(self->value.sleef_value, QUAD_PRECISION_ZERO);
     }
     else {
-        return PyBool_FromLong(self->value.longdouble_value != 0.0L);
+        return self->value.longdouble_value != 0.0L;
     }
 }
 
