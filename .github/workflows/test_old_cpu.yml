@@ -65,6 +65,7 @@ jobs:
 
       - name: Run tests on Sandy Bridge
         run: |
+          pip install pytest mpmath
           sde -snb -- python -m pytest tests/ -v --tb=short
 
   test_haswell:
