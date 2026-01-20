@@ -1,0 +1,14 @@
+diff --git a/Configure.cmake b/Configure.cmake
+--- a/Configure.cmake
++++ b/Configure.cmake
+@@ -193,7 +193,9 @@ endif()
+ if(SLEEF_TARGET_PROCESSOR MATCHES "(x86|AMD64|amd64|^i.86$)")
+   set(SLEEF_ARCH_X86 ON CACHE INTERNAL "True for x86 architecture.")
+ 
+-  set(CLANG_FLAGS_ENABLE_PURECFMA_SCALAR "-mavx2;-mfma")
++  # Use empty flags for PURECFMA_SCALAR to support x86-64-v2 CPUs (no AVX2/FMA requirement)
++  # Original was "-mavx2;-mfma" which causes SIGILL on Sandy Bridge and similar CPUs
++  set(CLANG_FLAGS_ENABLE_PURECFMA_SCALAR "")
+ elseif(SLEEF_TARGET_PROCESSOR MATCHES "aarch64|arm64")
+   set(SLEEF_ARCH_AARCH64 ON CACHE INTERNAL "True for Aarch64 architecture.")
+   # Aarch64 requires support for advsimdfma4
