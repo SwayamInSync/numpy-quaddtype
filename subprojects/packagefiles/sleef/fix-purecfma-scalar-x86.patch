@@ -1,14 +1,28 @@
 diff --git a/Configure.cmake b/Configure.cmake
 --- a/Configure.cmake
 +++ b/Configure.cmake
-@@ -193,7 +193,9 @@ endif()
+@@ -193,9 +193,12 @@ endif()
  if(SLEEF_TARGET_PROCESSOR MATCHES "(x86|AMD64|amd64|^i.86$)")
    set(SLEEF_ARCH_X86 ON CACHE INTERNAL "True for x86 architecture.")
  
 -  set(CLANG_FLAGS_ENABLE_PURECFMA_SCALAR "-mavx2;-mfma")
-+  # Use empty flags for PURECFMA_SCALAR to support x86-64-v2 CPUs (no AVX2/FMA requirement)
-+  # Original was "-mavx2;-mfma" which causes SIGILL on Sandy Bridge and similar CPUs
-+  set(CLANG_FLAGS_ENABLE_PURECFMA_SCALAR "")
++  # Removed: PURECFMA_SCALAR requires AVX2/FMA which breaks x86-64-v2 compatibility
++  # The PURECFMA code path uses FMA intrinsics that cause SIGILL on Sandy Bridge CPUs
++  # PUREC_SCALAR will be used as the scalar fallback instead
++  # Original was: set(CLANG_FLAGS_ENABLE_PURECFMA_SCALAR "-mavx2;-mfma")
  elseif(SLEEF_TARGET_PROCESSOR MATCHES "aarch64|arm64")
    set(SLEEF_ARCH_AARCH64 ON CACHE INTERNAL "True for Aarch64 architecture.")
    # Aarch64 requires support for advsimdfma4
+@@ -220,7 +223,12 @@ elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "riscv64")
+ endif()
+ 
+ set(COMPILER_SUPPORTS_PUREC_SCALAR 1)
+-set(COMPILER_SUPPORTS_PURECFMA_SCALAR 1)
++# Disable PURECFMA_SCALAR on x86 to maintain x86-64-v2 compatibility
++# PURECFMA requires FMA instructions which are only available in x86-64-v3 (Haswell+)
++# This allows numpy-quaddtype to work on Sandy Bridge and similar older CPUs
++if(NOT SLEEF_ARCH_X86)
++  set(COMPILER_SUPPORTS_PURECFMA_SCALAR 1)
++endif()
+ 
+ # Compiler feature detection
