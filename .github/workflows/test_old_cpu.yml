@@ -56,7 +56,7 @@ jobs:
           sde -snb -- python -c "
           import numpy as np
           print('NumPy version:', np.__version__)
-          from quaddtype import QuadPrecDType
+          from numpy_quaddtype import QuadPrecDType
           print('QuadPrecDType imported successfully!')
           arr = np.zeros(3, dtype=QuadPrecDType())
           print('Created quad array:', arr)
@@ -108,7 +108,7 @@ jobs:
           sde -hsw -- python -c "
           import numpy as np
           print('NumPy version:', np.__version__)
-          from quaddtype import QuadPrecDType
+          from numpy_quaddtype import QuadPrecDType
           print('QuadPrecDType imported successfully!')
           arr = np.zeros(3, dtype=QuadPrecDType())
           print('Created quad array:', arr)
