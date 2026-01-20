@@ -117,4 +117,5 @@ jobs:
 
       - name: Run tests on Haswell
         run: |
+          pip install pytest mpmath
           sde -hsw -- python -m pytest tests/ -v --tb=short
