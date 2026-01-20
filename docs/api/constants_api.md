@@ -71,7 +71,7 @@ Pre-defined mathematical constants with quad precision accuracy.
 
    The largest negative representable finite quad-precision value is ``-numpy_quaddtype.max_value``.
 
-   :value: :math:`216383 \cdot (2 - 2^{-112})` or approximately :math:`1.19 \cdot 10^{4932}`
+   :value: :math:`2^{16383} \cdot (2 - 2^{-112})` or approximately :math:`1.19 \cdot 10^{4932}`
 
    :type: QuadPrecision
 

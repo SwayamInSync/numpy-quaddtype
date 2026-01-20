@@ -21,7 +21,11 @@ Helper functions for platform precision detection and threading control.
    - Linux aarch64: Returns ``True`` (128-bit quad precision)
    - macOS (all): Returns ``False`` (64-bit double precision)
    - Windows (all): Returns ``False`` (64-bit double precision)
+.. note::
 
+      When this returns ``True``, the SLEEF and longdouble backends share
+      the same IEEE 754 binary128 representation, making inter-backend
+      casting lossless.
    **Example**
 
    ::
@@ -128,7 +132,7 @@ if version:
 
         start = time.time()
         for _ in range(10):
-            result = np.dot(arr, arr)
+            result = np.matmul(arr, arr)
         elapsed = time.time() - start
 
         print(f"  {threads} threads: {elapsed:.3f}s")

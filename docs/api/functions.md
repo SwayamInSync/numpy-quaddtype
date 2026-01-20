@@ -45,7 +45,7 @@ NumPy QuadDType supports a comprehensive set of NumPy universal functions (ufunc
 | `np.arctan` | Inverse tangent |
 | `np.arctan2` | Two-argument inverse tangent |
 
-### Element-wise Hyperbolic Functions
+## Element-wise Hyperbolic Functions
 
 | Function | Description |
 |----------|-------------|
