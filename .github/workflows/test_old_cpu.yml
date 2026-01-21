@@ -51,7 +51,7 @@ jobs:
         env:
           LDFLAGS: "-fopenmp"
         run: |
-          sde -${{ matrix.cpu[0] }} -- pip install . --no-build-isolation -v
+          sde -${{ matrix.cpu[0] }} -- python -m pip install . --no-build-isolation -v
 
       - name: Test import on ${{ matrix.cpu[1] }}
         run: |
