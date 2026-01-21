@@ -1,26 +1,45 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 1234567..abcdefg 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -90,6 +90,10 @@ option(SLEEF_ENFORCE_CUDA "Build fails if CUDA is not supported" OFF)
+ option(SLEEF_DISABLE_OPENMP "Disable OPENMP" OFF)
+ option(SLEEF_ENFORCE_OPENMP "Build fails if OPENMP is not supported by the compiler" OFF)
+ 
++# Option to disable PURECFMA scalar code path on x86 for x86-64-v2 compatibility
++# When ON, PURECFMA scalar dispatch is disabled (useful for Sandy Bridge support)
++# This can be set dynamically by the build system based on target CPU detection
++option(SLEEF_DISABLE_PURECFMA_SCALAR "Disable PURECFMA scalar code path (for x86-64-v2 compatibility)" OFF)
+ #
+ 
+ if ((NOT "${CMAKE_C_COMPILER_ID}" STREQUAL "${CMAKE_CXX_COMPILER_ID}") OR
 diff --git a/Configure.cmake b/Configure.cmake
-index e23f577..e1a1be6 100644
+index e23f577..f1a2b3c 100644
 --- a/Configure.cmake
 +++ b/Configure.cmake
-@@ -193,7 +193,9 @@ endif()
+@@ -193,7 +193,12 @@ endif()
  if(SLEEF_TARGET_PROCESSOR MATCHES "(x86|AMD64|amd64|^i.86$)")
    set(SLEEF_ARCH_X86 ON CACHE INTERNAL "True for x86 architecture.")
  
 -  set(CLANG_FLAGS_ENABLE_PURECFMA_SCALAR "-mavx2;-mfma")
-+  # Removed PURECFMA_SCALAR flags for x86-64-v2 compatibility
-+  # The PURECFMA code path uses FMA intrinsics that cause SIGILL on Sandy Bridge CPUs
-+  # Original was: set(CLANG_FLAGS_ENABLE_PURECFMA_SCALAR "-mavx2;-mfma")
++  # Only set PURECFMA_SCALAR flags if not explicitly disabled
++  if(NOT SLEEF_DISABLE_PURECFMA_SCALAR)
++    set(CLANG_FLAGS_ENABLE_PURECFMA_SCALAR "-mavx2;-mfma")
++  else()
++    message(STATUS "PURECFMA_SCALAR disabled for x86-64-v2 compatibility")
++  endif()
  elseif(SLEEF_TARGET_PROCESSOR MATCHES "aarch64|arm64")
    set(SLEEF_ARCH_AARCH64 ON CACHE INTERNAL "True for Aarch64 architecture.")
    # Aarch64 requires support for advsimdfma4
-@@ -220,7 +222,11 @@ elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "riscv64")
+@@ -220,7 +225,12 @@ elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "riscv64")
  endif()
  
  set(COMPILER_SUPPORTS_PUREC_SCALAR 1)
 -set(COMPILER_SUPPORTS_PURECFMA_SCALAR 1)
-+# Disable PURECFMA_SCALAR on x86 for x86-64-v2 compatibility (Sandy Bridge support)
-+# PURECFMA requires FMA instructions which are only available in x86-64-v3 (Haswell+)
-+if(NOT SLEEF_ARCH_X86)
++# Conditionally enable PURECFMA_SCALAR based on option
++if(SLEEF_DISABLE_PURECFMA_SCALAR)
++  set(COMPILER_SUPPORTS_PURECFMA_SCALAR 0)
++else()
 +  set(COMPILER_SUPPORTS_PURECFMA_SCALAR 1)
 +endif()
  
@@ -30,16 +49,16 @@ diff --git a/src/quad/CMakeLists.txt b/src/quad/CMakeLists.txt
 index 8e4e261..cc55002 100644
 --- a/src/quad/CMakeLists.txt
 +++ b/src/quad/CMakeLists.txt
-@@ -398,9 +398,17 @@ set_target_properties(qmkdisp PROPERTIES ${COMMON_TARGET_PROPERTIES})
+@@ -397,9 +397,17 @@ set_target_properties(qmkdisp PROPERTIES ${COMMON_TARGET_PROPERTIES})
  
  # Target qdispscalar.c
  
 +# Set scalar dispatch backends based on PURECFMA support
-+# On x86, PURECFMA is disabled for x86-64-v2 compatibility
++# When SLEEF_DISABLE_PURECFMA_SCALAR is ON, use purec for both slots
 +if(COMPILER_SUPPORTS_PURECFMA_SCALAR)
 +  set(SCALAR_DISPATCH_BACKENDS "purec" "purecfma")
 +else()
-+  set(SCALAR_DISPATCH_BACKENDS "purec" "purec")  # Use purec for both slots
++  set(SCALAR_DISPATCH_BACKENDS "purec" "purec")
 +endif()
 +
  add_custom_command(
@@ -67,4 +86,3 @@ index c4c1292..48f309c 100644
 +#endif
  
  //
- 

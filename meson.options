@@ -1,5 +1,3 @@
-# numpy-quaddtype build options
-
 option('disable_fma', type: 'boolean', value: false,
-       description: 'Disable FMA (Fused Multiply-Add) code paths for x86-64-v2 compatibility. ' +
+       description: 'Disable FMA (Fused Multiply-Add) code paths' +
                     'Set to true when building for older CPUs like Sandy Bridge that lack FMA support.')

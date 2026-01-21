@@ -29,13 +29,11 @@ if host_machine.cpu_family() == 'x86_64' or host_machine.cpu_family() == 'x86'
   sleef_simd_flags = ['-DSLEEF_ENABLE_SSE2=ON']
   
   if force_disable_fma
-    # User explicitly requested no FMA (e.g., targeting Sandy Bridge via Intel SDE)
+    # User explicitly requested no FMA
     message('FMA explicitly disabled via option - disabling PURECFMA scalar for x86-64-v2 compatibility')
     sleef_purecfma_flag = ['-DSLEEF_DISABLE_PURECFMA_SCALAR=ON']
   else
-    # Auto-detect FMA support at configure time for x86-64-v2 vs v3 compatibility
-    # If the compiler can't compile FMA code, we're targeting x86-64-v2 (Sandy Bridge)
-    # and need to disable PURECFMA scalar code path to avoid SIGILL
+    # Auto-detect FMA support at configure time
     has_fma = cc.compiles('''
       #include <immintrin.h>
       int main(void) {
@@ -49,7 +47,7 @@ if host_machine.cpu_family() == 'x86_64' or host_machine.cpu_family() == 'x86'
     ''', args: ['-mfma'], name: 'FMA instruction support')
     
     if not has_fma
-      message('FMA not supported - disabling PURECFMA scalar for x86-64-v2 compatibility')
+      message('FMA not supported - disabling PURECFMA scalar code path')
       sleef_purecfma_flag = ['-DSLEEF_DISABLE_PURECFMA_SCALAR=ON']
     else
       message('FMA supported - enabling PURECFMA scalar code path')
