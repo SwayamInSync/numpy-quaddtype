@@ -16,6 +16,7 @@ jobs:
     name: Test on ${{ matrix.cpu[1] }}
     runs-on: ubuntu-24.04
     strategy:
+      fail-fast: false
       matrix:
         cpu:
           - ['snb', 'Sandy Bridge (x86_64-v2)']
