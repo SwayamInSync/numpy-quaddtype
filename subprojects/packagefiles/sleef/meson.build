@@ -33,8 +33,11 @@ if host_machine.cpu_family() == 'x86_64' or host_machine.cpu_family() == 'x86'
     message('FMA explicitly disabled via option - disabling PURECFMA scalar for x86-64-v2 compatibility')
     sleef_purecfma_flag = ['-DSLEEF_DISABLE_PURECFMA_SCALAR=ON']
   else
-    # Auto-detect FMA support at configure time
-    has_fma = cc.compiles('''
+    # Auto-detect FMA support at configure time by actually running FMA code
+    # Note: cc.compiles() with -mfma always passes because compilers support generating
+    # FMA instructions even for CPUs that don't have them. We need cc.run() to verify
+    # the CPU actually supports FMA at runtime.
+    fma_test_result = cc.run('''
       #include <immintrin.h>
       int main(void) {
         __m128 a = _mm_set1_ps(1.0f);
@@ -44,10 +47,12 @@ if host_machine.cpu_family() == 'x86_64' or host_machine.cpu_family() == 'x86'
         (void)r;
         return 0;
       }
-    ''', args: ['-mfma'], name: 'FMA instruction support')
+    ''', args: ['-mfma'], name: 'FMA instruction runtime support')
+    
+    has_fma = fma_test_result.compiled() and fma_test_result.returncode() == 0
     
     if not has_fma
-      message('FMA not supported - disabling PURECFMA scalar code path')
+      message('FMA not supported at runtime - disabling PURECFMA scalar code path')
       sleef_purecfma_flag = ['-DSLEEF_DISABLE_PURECFMA_SCALAR=ON']
     else
       message('FMA supported - enabling PURECFMA scalar code path')
