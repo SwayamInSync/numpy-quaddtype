@@ -68,6 +68,18 @@ index 8e4e261..cc55002 100644
    DEPENDS qmkdisp
    )
  sleef_concat_files(
+@@ -420,6 +428,11 @@ target_compile_definitions(qdispscalar_obj PRIVATE ${COMMON_TARGET_DEFINITIONS})
+ target_include_directories(qdispscalar_obj PRIVATE ${sleef_BINARY_DIR}/include)
+ add_dependencies(qdispscalar_obj qdispscalar.c_generated qrenamedspscalar.h_generated
+    sleefquad_headers ${TARGET_LIBSLEEF} ${TARGET_HEADERS})
++# Define ENABLE_PURECFMA when PURECFMA is supported, so qdispscalar.c.org
++# can conditionally include the tryFMA() function and SUBST_IF_EXT1 macro
++if(COMPILER_SUPPORTS_PURECFMA_SCALAR)
++  target_compile_definitions(qdispscalar_obj PRIVATE ENABLE_PURECFMA=1)
++endif()
+ target_sources(sleefquad PRIVATE $<TARGET_OBJECTS:qdispscalar_obj>)
+ 
+ # Target qdispsse2_obj
 diff --git a/src/quad/qdispscalar.c.org b/src/quad/qdispscalar.c.org
 index c4c1292..48f309c 100644
 --- a/src/quad/qdispscalar.c.org
