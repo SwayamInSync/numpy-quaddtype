@@ -18,12 +18,13 @@ qblas_dep = dependency('qblas', fallback: ['qblas', 'qblas_dep'])
 # Try to find SLEEF system-wide first, fall back to subproject if not found
 # Required SLEEF version (must match sleef.wrap revision)
 required_sleef_version = '3.9.0'
-sleef_dep = dependency('sleef', version: '>=' + required_sleef_version, fallback: ['sleef', 'sleef_dep'], required: false)
+# Don't use fallback here - we need to call subproject() explicitly later with disable_fma option
+sleef_dep = dependency('sleef', version: '>=' + required_sleef_version, required: false)
 
 use_system_sleef = false
 fallback_reason = ''
 
-if sleef_dep.found() and sleef_dep.type_name() != 'internal' and sleef_dep.version().startswith(required_sleef_version)
+if sleef_dep.found() and sleef_dep.version().startswith(required_sleef_version)
   # SLEEF found system-wide - verify quad-precision support
   cpp = meson.get_compiler('cpp')
   sleefquad_lib = cpp.find_library('sleefquad', required: false)
