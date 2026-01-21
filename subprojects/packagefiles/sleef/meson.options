@@ -1,0 +1,5 @@
+# SLEEF subproject build options
+
+option('disable_fma', type: 'boolean', value: false,
+       description: 'Force disable FMA (Fused Multiply-Add) code paths. ' +
+                    'Use this when targeting x86-64-v2 CPUs (like Sandy Bridge) that lack FMA support.')

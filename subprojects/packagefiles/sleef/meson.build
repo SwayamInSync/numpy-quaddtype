@@ -22,29 +22,38 @@ endif
 sleef_simd_flags = []
 sleef_purecfma_flag = []
 
+# Check for force-disable FMA option (for cross-compilation or emulation scenarios)
+force_disable_fma = get_option('disable_fma')
+
 if host_machine.cpu_family() == 'x86_64' or host_machine.cpu_family() == 'x86'
   sleef_simd_flags = ['-DSLEEF_ENABLE_SSE2=ON']
   
-  # Detect FMA support at configure time for x86-64-v2 vs v3 compatibility
-  # If the compiler can't compile FMA code, we're targeting x86-64-v2 (Sandy Bridge)
-  # and need to disable PURECFMA scalar code path to avoid SIGILL
-  has_fma = cc.compiles('''
-    #include <immintrin.h>
-    int main(void) {
-      __m128 a = _mm_set1_ps(1.0f);
-      __m128 b = _mm_set1_ps(2.0f);
-      __m128 c = _mm_set1_ps(3.0f);
-      __m128 r = _mm_fmadd_ps(a, b, c);
-      (void)r;
-      return 0;
-    }
-  ''', args: ['-mfma'], name: 'FMA instruction support')
-  
-  if not has_fma
-    message('FMA not supported - disabling PURECFMA scalar for x86-64-v2 compatibility')
+  if force_disable_fma
+    # User explicitly requested no FMA (e.g., targeting Sandy Bridge via Intel SDE)
+    message('FMA explicitly disabled via option - disabling PURECFMA scalar for x86-64-v2 compatibility')
     sleef_purecfma_flag = ['-DSLEEF_DISABLE_PURECFMA_SCALAR=ON']
   else
-    message('FMA supported - enabling PURECFMA scalar code path')
+    # Auto-detect FMA support at configure time for x86-64-v2 vs v3 compatibility
+    # If the compiler can't compile FMA code, we're targeting x86-64-v2 (Sandy Bridge)
+    # and need to disable PURECFMA scalar code path to avoid SIGILL
+    has_fma = cc.compiles('''
+      #include <immintrin.h>
+      int main(void) {
+        __m128 a = _mm_set1_ps(1.0f);
+        __m128 b = _mm_set1_ps(2.0f);
+        __m128 c = _mm_set1_ps(3.0f);
+        __m128 r = _mm_fmadd_ps(a, b, c);
+        (void)r;
+        return 0;
+      }
+    ''', args: ['-mfma'], name: 'FMA instruction support')
+    
+    if not has_fma
+      message('FMA not supported - disabling PURECFMA scalar for x86-64-v2 compatibility')
+      sleef_purecfma_flag = ['-DSLEEF_DISABLE_PURECFMA_SCALAR=ON']
+    else
+      message('FMA supported - enabling PURECFMA scalar code path')
+    endif
   endif
 endif
 

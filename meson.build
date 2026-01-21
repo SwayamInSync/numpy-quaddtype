@@ -68,7 +68,8 @@ endif
 if use_system_sleef
   message('Using system-wide SLEEF installation with quad-precision support')
 else
-  sleef_subproj = subproject('sleef')
+  # Pass disable_fma option to sleef subproject for x86-64-v2 compatibility
+  sleef_subproj = subproject('sleef', default_options: ['disable_fma=' + get_option('disable_fma').to_string()])
   sleef_dep = sleef_subproj.get_variable('sleef_dep')
   sleefquad_dep = sleef_subproj.get_variable('sleefquad_dep')
   warning(fallback_reason)

@@ -68,3 +68,21 @@ index 8e4e261..cc55002 100644
    DEPENDS qmkdisp
    )
  sleef_concat_files(
+diff --git a/src/quad/qdispscalar.c.org b/src/quad/qdispscalar.c.org
+index c4c1292..48f309c 100644
+--- a/src/quad/qdispscalar.c.org
++++ b/src/quad/qdispscalar.c.org
+@@ -15,10 +15,14 @@
+ 
+ #include "qdispatcher.h"
+ 
++#ifdef ENABLE_PURECFMA
+ NOEXPORT Sleef_quad sleef_cpuid_QUADFMA_0;
+ static void tryFMA() { sleef_cpuid_QUADFMA_0 = Sleef_sinq1_u10purecfma(sleef_cpuid_QUADFMA_0); }
+ 
+ #define SUBST_IF_EXT1(funcExt1) if (cpuSupportsExt(tryFMA)) p = funcExt1;
++#else
++#define SUBST_IF_EXT1(funcExt1)
++#endif
+ 
+ //
