@@ -110,7 +110,7 @@ NumPy QuadDType supports a comprehensive set of NumPy universal functions (ufunc
 | `np.greater` | `>` | Greater than |
 | `np.greater_equal` | `>=` | Greater than or equal |
 
-### Element-wise Minimum/Maximum
+## Element-wise Minimum/Maximum
 
 | Function | Description |
 |----------|-------------|
