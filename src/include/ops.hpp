@@ -8,19 +8,19 @@ typedef Sleef_quad (*unary_op_quad_def)(const Sleef_quad *);
 // Unary Quad operations with 2 outputs (for modf, frexp)
 typedef void (*unary_op_2out_quad_def)(const Sleef_quad *, Sleef_quad *, Sleef_quad *);
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_negative(const Sleef_quad *op)
 {
     return Sleef_negq1(*op);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_positive(const Sleef_quad *op)
 {
     return *op;
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_sign(const Sleef_quad *op)
 {
     int sign = Sleef_icmpq1(*op, QUAD_PRECISION_ZERO);
@@ -28,20 +28,20 @@ quad_sign(const Sleef_quad *op)
     return Sleef_iunordq1(*op, *op) ? *op : Sleef_cast_from_int64q1(sign);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_absolute(const Sleef_quad *op)
 {
     return Sleef_fabsq1(*op);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_conjugate(const Sleef_quad *op)
 {
     // For real numbers, conjugate is the identity function (no-op)
     return *op;
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_rint(const Sleef_quad *op)
 {
     Sleef_quad halfway = Sleef_addq1_u05(
@@ -56,31 +56,31 @@ quad_rint(const Sleef_quad *op)
     );
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_trunc(const Sleef_quad *op)
 {
     return Sleef_truncq1(*op);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_floor(const Sleef_quad *op)
 {
     return Sleef_floorq1(*op);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_ceil(const Sleef_quad *op)
 {
     return Sleef_ceilq1(*op);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_sqrt(const Sleef_quad *op)
 {
     return Sleef_sqrtq1_u05(*op);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_cbrt(const Sleef_quad *op)
 {
     // SLEEF doesn't provide cbrt, so we implement it using pow
@@ -114,146 +114,146 @@ quad_cbrt(const Sleef_quad *op)
     return Sleef_powq1_u10(*op, one_third);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_square(const Sleef_quad *op)
 {
     return Sleef_mulq1_u05(*op, *op);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_reciprocal(const Sleef_quad *op)
 {
     return Sleef_divq1_u05(QUAD_PRECISION_ONE, *op);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_log(const Sleef_quad *op)
 {
     return Sleef_logq1_u10(*op);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_log2(const Sleef_quad *op)
 {
     return Sleef_log2q1_u10(*op);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_log10(const Sleef_quad *op)
 {
     return Sleef_log10q1_u10(*op);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_log1p(const Sleef_quad *op)
 {
     return Sleef_log1pq1_u10(*op);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_exp(const Sleef_quad *op)
 {
     return Sleef_expq1_u10(*op);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_exp2(const Sleef_quad *op)
 {
     return Sleef_exp2q1_u10(*op);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_expm1(const Sleef_quad *op)
 {
     return Sleef_expm1q1_u10(*op);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_sin(const Sleef_quad *op)
 {
     return Sleef_sinq1_u10(*op);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_cos(const Sleef_quad *op)
 {
     return Sleef_cosq1_u10(*op);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_tan(const Sleef_quad *op)
 {
     return Sleef_tanq1_u10(*op);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_asin(const Sleef_quad *op)
 {
     return Sleef_asinq1_u10(*op);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_acos(const Sleef_quad *op)
 {
     return Sleef_acosq1_u10(*op);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_atan(const Sleef_quad *op)
 {
     return Sleef_atanq1_u10(*op);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_sinh(const Sleef_quad *op)
 {
     return Sleef_sinhq1_u10(*op);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_cosh(const Sleef_quad *op)
 {
     return Sleef_coshq1_u10(*op);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_tanh(const Sleef_quad *op)
 {
     return Sleef_tanhq1_u10(*op);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_asinh(const Sleef_quad *op)
 {
     return Sleef_asinhq1_u10(*op);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_acosh(const Sleef_quad *op)
 {
     return Sleef_acoshq1_u10(*op);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_atanh(const Sleef_quad *op)
 {
     return Sleef_atanhq1_u10(*op);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_degrees(const Sleef_quad *op)
 {
     // degrees = radians * 180 / π
-    static const Sleef_quad one_eighty = sleef_q(+0x1680000000000LL, 0x0000000000000000ULL, 7); // 180.0 in quad
+    const Sleef_quad one_eighty = sleef_q(+0x1680000000000LL, 0x0000000000000000ULL, 7); // 180.0 in quad
     Sleef_quad ratio = Sleef_divq1_u05(one_eighty, SLEEF_M_PIq);
     return Sleef_mulq1_u05(*op, ratio);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_radians(const Sleef_quad *op)
 {
     // radians = degrees * π / 180
-    static const Sleef_quad one_eighty = sleef_q(+0x1680000000000LL, 0x0000000000000000ULL, 7);
+    const Sleef_quad one_eighty = sleef_q(+0x1680000000000LL, 0x0000000000000000ULL, 7);
     Sleef_quad ratio = Sleef_divq1_u05(SLEEF_M_PIq, one_eighty);
     return Sleef_mulq1_u05(*op, ratio);
 }
@@ -261,32 +261,32 @@ quad_radians(const Sleef_quad *op)
 // Unary long double operations
 typedef long double (*unary_op_longdouble_def)(const long double *);
 
-static inline long double
+inline long double
 ld_negative(const long double *op)
 {
     return -(*op);
 }
 
-static inline long double
+inline long double
 ld_positive(const long double *op)
 {
     return *op;
 }
 
-static inline long double
+inline long double
 ld_absolute(const long double *op)
 {
     return fabsl(*op);
 }
 
-static inline long double
+inline long double
 ld_conjugate(const long double *op)
 {
     // For real numbers, conjugate is the identity function (no-op)
     return *op;
 }
 
-static inline long double
+inline long double
 ld_sign(const long double *op)
 {
     if (*op < 0.0)
@@ -299,169 +299,169 @@ ld_sign(const long double *op)
     return *op;
 }
 
-static inline long double
+inline long double
 ld_rint(const long double *op)
 {
     return rintl(*op);
 }
 
-static inline long double
+inline long double
 ld_trunc(const long double *op)
 {
     return truncl(*op);
 }
 
-static inline long double
+inline long double
 ld_floor(const long double *op)
 {
     return floorl(*op);
 }
 
-static inline long double
+inline long double
 ld_ceil(const long double *op)
 {
     return ceill(*op);
 }
 
-static inline long double
+inline long double
 ld_sqrt(const long double *op)
 {
     return sqrtl(*op);
 }
 
-static inline long double
+inline long double
 ld_cbrt(const long double *op)
 {
     return cbrtl(*op);
 }
 
-static inline long double
+inline long double
 ld_square(const long double *op)
 {
     return (*op) * (*op);
 }
 
-static inline long double
+inline long double
 ld_reciprocal(const long double *op)
 {
     return 1.0L / (*op);
 }
 
-static inline long double
+inline long double
 ld_log(const long double *op)
 {
     return logl(*op);
 }
 
-static inline long double
+inline long double
 ld_log2(const long double *op)
 {
     return log2l(*op);
 }
 
-static inline long double
+inline long double
 ld_log10(const long double *op)
 {
     return log10l(*op);
 }
 
-static inline long double
+inline long double
 ld_log1p(const long double *op)
 {
     return log1pl(*op);
 }
 
-static inline long double
+inline long double
 ld_exp(const long double *op)
 {
     return expl(*op);
 }
 
-static inline long double
+inline long double
 ld_exp2(const long double *op)
 {
     return exp2l(*op);
 }
 
-static inline long double
+inline long double
 ld_expm1(const long double *op)
 {
     return expm1l(*op);
 }
 
-static inline long double
+inline long double
 ld_sin(const long double *op)
 {
     return sinl(*op);
 }
 
-static inline long double
+inline long double
 ld_cos(const long double *op)
 {
     return cosl(*op);
 }
 
-static inline long double
+inline long double
 ld_tan(const long double *op)
 {
     return tanl(*op);
 }
 
-static inline long double
+inline long double
 ld_asin(const long double *op)
 {
     return asinl(*op);
 }
 
-static inline long double
+inline long double
 ld_acos(const long double *op)
 {
     return acosl(*op);
 }
 
-static inline long double
+inline long double
 ld_atan(const long double *op)
 {
     return atanl(*op);
 }
 
-static inline long double
+inline long double
 ld_sinh(const long double *op)
 {
     return sinhl(*op);
 }
 
-static inline long double
+inline long double
 ld_cosh(const long double *op)
 {
     return coshl(*op);
 }
 
-static inline long double
+inline long double
 ld_tanh(const long double *op)
 {
     return tanhl(*op);
 }
 
-static inline long double
+inline long double
 ld_asinh(const long double *op)
 {
     return asinhl(*op);
 }
 
-static inline long double
+inline long double
 ld_acosh(const long double *op)
 {
     return acoshl(*op);
 }
 
-static inline long double
+inline long double
 ld_atanh(const long double *op)
 {
     return atanhl(*op);
 }
 
-static inline long double
+inline long double
 ld_degrees(const long double *op)
 {
     // degrees = radians * 180 / π
@@ -471,7 +471,7 @@ ld_degrees(const long double *op)
     return (*op) * (180.0L / static_cast<long double>(M_PI));
 }
 
-static inline long double
+inline long double
 ld_radians(const long double *op)
 {
     // radians = degrees * π / 180
@@ -484,7 +484,7 @@ ld_radians(const long double *op)
 // Unary Quad properties
 typedef npy_bool (*unary_prop_quad_def)(const Sleef_quad *);
 
-static inline npy_bool
+inline npy_bool
 quad_signbit(const Sleef_quad *op)
 {
     // FIXME @juntyr or @SwayamInSync: replace with binary implementation
@@ -494,21 +494,21 @@ quad_signbit(const Sleef_quad *op)
     return Sleef_icmpltq1(one_signed, QUAD_PRECISION_ZERO);
 }
 
-static inline npy_bool
+inline npy_bool
 quad_isfinite(const Sleef_quad *op)
 {
     // isfinite(x) = abs(x) < inf
     return Sleef_icmpltq1(Sleef_fabsq1(*op), QUAD_PRECISION_INF);
 }
 
-static inline npy_bool
+inline npy_bool
 quad_isinf(const Sleef_quad *op)
 {
     // isinf(x) = abs(x) == inf
     return Sleef_icmpeqq1(Sleef_fabsq1(*op), QUAD_PRECISION_INF);
 }
 
-static inline npy_bool
+inline npy_bool
 quad_isnan(const Sleef_quad *op)
 {
     return Sleef_iunordq1(*op, *op);
@@ -517,25 +517,25 @@ quad_isnan(const Sleef_quad *op)
 // Unary long double properties
 typedef npy_bool (*unary_prop_longdouble_def)(const long double *);
 
-static inline npy_bool
+inline npy_bool
 ld_signbit(const long double *op)
 {
     return signbit(*op);
 }
 
-static inline npy_bool
+inline npy_bool
 ld_isfinite(const long double *op)
 {
     return isfinite(*op);
 }
 
-static inline npy_bool
+inline npy_bool
 ld_isinf(const long double *op)
 {
     return isinf(*op);
 }
 
-static inline npy_bool
+inline npy_bool
 ld_isnan(const long double *op)
 {
     return isnan(*op);
@@ -546,31 +546,31 @@ typedef Sleef_quad (*binary_op_quad_def)(const Sleef_quad *, const Sleef_quad *)
 // Binary Quad operations with 2 outputs (for divmod, modf, frexp)
 typedef void (*binary_op_2out_quad_def)(const Sleef_quad *, const Sleef_quad *, Sleef_quad *, Sleef_quad *);
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_add(const Sleef_quad *in1, const Sleef_quad *in2)
 {
     return Sleef_addq1_u05(*in1, *in2);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_sub(const Sleef_quad *in1, const Sleef_quad *in2)
 {
     return Sleef_subq1_u05(*in1, *in2);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_mul(const Sleef_quad *a, const Sleef_quad *b)
 {
     return Sleef_mulq1_u05(*a, *b);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_div(const Sleef_quad *a, const Sleef_quad *b)
 {
     return Sleef_divq1_u05(*a, *b);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_floor_divide(const Sleef_quad *a, const Sleef_quad *b)
 {
     // Handle NaN inputs
@@ -603,13 +603,13 @@ quad_floor_divide(const Sleef_quad *a, const Sleef_quad *b)
     return result;
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_pow(const Sleef_quad *a, const Sleef_quad *b)
 {
     return Sleef_powq1_u10(*a, *b);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_mod(const Sleef_quad *a, const Sleef_quad *b)
 {
     // division by zero
@@ -656,7 +656,7 @@ quad_mod(const Sleef_quad *a, const Sleef_quad *b)
     return result;
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_fmod(const Sleef_quad *a, const Sleef_quad *b)
 {
     // Handle NaN inputs
@@ -696,7 +696,7 @@ quad_fmod(const Sleef_quad *a, const Sleef_quad *b)
     return result;
 }
 
-static inline void
+inline void
 quad_divmod(const Sleef_quad *a, const Sleef_quad *b, 
             Sleef_quad *out_quotient, Sleef_quad *out_remainder)
 {
@@ -704,7 +704,7 @@ quad_divmod(const Sleef_quad *a, const Sleef_quad *b,
     *out_remainder = quad_mod(a, b);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_minimum(const Sleef_quad *in1, const Sleef_quad *in2)
 {
     if (Sleef_iunordq1(*in1, *in2)) {
@@ -717,7 +717,7 @@ quad_minimum(const Sleef_quad *in1, const Sleef_quad *in2)
     return Sleef_fminq1(*in1, *in2);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_maximum(const Sleef_quad *in1, const Sleef_quad *in2)
 {
     if (Sleef_iunordq1(*in1, *in2)) {
@@ -730,7 +730,7 @@ quad_maximum(const Sleef_quad *in1, const Sleef_quad *in2)
     return Sleef_fmaxq1(*in1, *in2);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_fmin(const Sleef_quad *in1, const Sleef_quad *in2)
 {
     if (Sleef_iunordq1(*in1, *in2)) {
@@ -743,7 +743,7 @@ quad_fmin(const Sleef_quad *in1, const Sleef_quad *in2)
     return Sleef_fminq1(*in1, *in2);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_fmax(const Sleef_quad *in1, const Sleef_quad *in2)
 {
     if (Sleef_iunordq1(*in1, *in2)) {
@@ -756,19 +756,19 @@ quad_fmax(const Sleef_quad *in1, const Sleef_quad *in2)
     return Sleef_fmaxq1(*in1, *in2);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_atan2(const Sleef_quad *in1, const Sleef_quad *in2)
 {
     return Sleef_atan2q1_u10(*in1, *in2);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_copysign(const Sleef_quad *in1, const Sleef_quad *in2)
 {
     return Sleef_copysignq1(*in1, *in2);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_logaddexp(const Sleef_quad *x, const Sleef_quad *y)
 {
     // logaddexp(x, y) = log(exp(x) + exp(y))
@@ -810,7 +810,7 @@ quad_logaddexp(const Sleef_quad *x, const Sleef_quad *y)
     return Sleef_addq1_u05(max_val, log1p_term);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_logaddexp2(const Sleef_quad *x, const Sleef_quad *y)
 {
     // logaddexp2(x, y) = log2(2^x + 2^y)
@@ -853,7 +853,7 @@ quad_logaddexp2(const Sleef_quad *x, const Sleef_quad *y)
     return Sleef_addq1_u05(max_val, log2_term);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_heaviside(const Sleef_quad *x1, const Sleef_quad *x2)
 {
     // heaviside(x1, x2) = 0 if x1 < 0, x2 if x1 == 0, 1 if x1 > 0
@@ -873,7 +873,7 @@ quad_heaviside(const Sleef_quad *x1, const Sleef_quad *x2)
     }
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_hypot(const Sleef_quad *x1, const Sleef_quad *x2)
 {
     // hypot(x1, x2) = sqrt(x1^2 + x2^2)
@@ -882,7 +882,7 @@ quad_hypot(const Sleef_quad *x1, const Sleef_quad *x2)
 
 // todo: we definitely need to refactor this file, getting too clumsy everything here
 
-static inline void quad_get_words64(int64_t *hx, uint64_t *lx, Sleef_quad x)
+inline void quad_get_words64(int64_t *hx, uint64_t *lx, Sleef_quad x)
 {
     union {
         Sleef_quad q;
@@ -901,7 +901,7 @@ static inline void quad_get_words64(int64_t *hx, uint64_t *lx, Sleef_quad x)
     *lx = u.i.lo;
 }
 
-static inline Sleef_quad quad_set_words64(int64_t hx, uint64_t lx)
+inline Sleef_quad quad_set_words64(int64_t hx, uint64_t lx)
 {
     union {
         Sleef_quad q;
@@ -921,7 +921,7 @@ static inline Sleef_quad quad_set_words64(int64_t hx, uint64_t lx)
 }
 
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_nextafter(const Sleef_quad *x, const Sleef_quad *y)
 {
     int64_t hx, hy, ix;
@@ -1005,7 +1005,7 @@ quad_nextafter(const Sleef_quad *x, const Sleef_quad *y)
     return quad_set_words64(hx, lx);
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_spacing(const Sleef_quad *x)
 {   
     // spacing(x) returns the distance between x and the next representable value
@@ -1050,7 +1050,7 @@ typedef long double (*ldexp_op_longdouble_def)(const long double *, const int *)
 typedef Sleef_quad (*frexp_op_quad_def)(const Sleef_quad *, int *);
 typedef long double (*frexp_op_longdouble_def)(const long double *, int *);
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_ldexp(const Sleef_quad *x, const int *exp)
 {
     // ldexp(x, exp) returns x * 2^exp
@@ -1076,7 +1076,7 @@ quad_ldexp(const Sleef_quad *x, const int *exp)
     return result;
 }
 
-static inline long double
+inline long double
 ld_ldexp(const long double *x, const int *exp)
 {
     // ldexp(x, exp) returns x * 2^exp
@@ -1102,7 +1102,7 @@ ld_ldexp(const long double *x, const int *exp)
     return result;
 }
 
-static inline Sleef_quad
+inline Sleef_quad
 quad_frexp(const Sleef_quad *x, int *exp)
 {
     // frexp(x) returns mantissa m and exponent e such that x = m * 2^e
@@ -1135,7 +1135,7 @@ quad_frexp(const Sleef_quad *x, int *exp)
     return mantissa;
 }
 
-static inline long double
+inline long double
 ld_frexp(const long double *x, int *exp)
 {
     // frexp(x) returns mantissa m and exponent e such that x = m * 2^e
@@ -1168,31 +1168,31 @@ typedef long double (*binary_op_longdouble_def)(const long double *, const long 
 // Binary long double operations with 2 outputs (for divmod, modf, frexp)
 typedef void (*binary_op_2out_longdouble_def)(const long double *, const long double *, long double *, long double *);
 
-static inline long double
+inline long double
 ld_add(const long double *in1, const long double *in2)
 {
     return (*in1) + (*in2);
 }
 
-static inline long double
+inline long double
 ld_sub(const long double *in1, const long double *in2)
 {
     return (*in1) - (*in2);
 }
 
-static inline long double
+inline long double
 ld_mul(const long double *a, const long double *b)
 {
     return (*a) * (*b);
 }
 
-static inline long double
+inline long double
 ld_div(const long double *a, const long double *b)
 {
     return (*a) / (*b);
 }
 
-static inline long double
+inline long double
 ld_floor_divide(const long double *a, const long double *b)
 {
     // Handle NaN inputs
@@ -1224,13 +1224,13 @@ ld_floor_divide(const long double *a, const long double *b)
     return result;
 }
 
-static inline long double
+inline long double
 ld_pow(const long double *a, const long double *b)
 {
     return powl(*a, *b);
 }
 
-static inline long double
+inline long double
 ld_mod(const long double *a, const long double *b)
 {
     if (*b == 0.0L)
@@ -1257,7 +1257,7 @@ ld_mod(const long double *a, const long double *b)
     return result;
 }
 
-static inline long double
+inline long double
 ld_fmod(const long double *a, const long double *b)
 {
     // Handle NaN inputs
@@ -1294,7 +1294,7 @@ ld_fmod(const long double *a, const long double *b)
     return result;
 }
 
-static inline void
+inline void
 ld_divmod(const long double *a, const long double *b,
           long double *out_quotient, long double *out_remainder)
 {
@@ -1302,43 +1302,43 @@ ld_divmod(const long double *a, const long double *b,
     *out_remainder = ld_mod(a, b);
 }
 
-static inline long double
+inline long double
 ld_minimum(const long double *in1, const long double *in2)
 {
     return isnan(*in1) ? *in1 : (*in1 < *in2) ? *in1 : *in2;
 }
 
-static inline long double
+inline long double
 ld_maximum(const long double *in1, const long double *in2)
 {
     return isnan(*in1) ? *in1 : (*in1 > *in2) ? *in1 : *in2;
 }
 
-static inline long double
+inline long double
 ld_fmin(const long double *in1, const long double *in2)
 {
     return fmin(*in1, *in2);
 }
 
-static inline long double
+inline long double
 ld_fmax(const long double *in1, const long double *in2)
 {
     return fmax(*in1, *in2);
 }
 
-static inline long double
+inline long double
 ld_atan2(const long double *in1, const long double *in2)
 {
     return atan2l(*in1, *in2);
 }
 
-static inline long double
+inline long double
 ld_copysign(const long double *in1, const long double *in2)
 {
     return copysignl(*in1, *in2);
 }
 
-static inline long double
+inline long double
 ld_logaddexp(const long double *x, const long double *y)
 {
     // logaddexp(x, y) = log(exp(x) + exp(y))
@@ -1375,7 +1375,7 @@ ld_logaddexp(const long double *x, const long double *y)
     return max_val + log1pl(expl(-abs_diff));
 }
 
-static inline long double
+inline long double
 ld_logaddexp2(const long double *x, const long double *y)
 {
     // logaddexp2(x, y) = log2(2^x + 2^y)
@@ -1413,7 +1413,7 @@ ld_logaddexp2(const long double *x, const long double *y)
     return max_val + log2l(1.0L + exp2l(-abs_diff));
 }
 
-static inline long double
+inline long double
 ld_heaviside(const long double *x1, const long double *x2)
 {
     // heaviside(x1, x2) = 0 if x1 < 0, x2 if x1 == 0, 1 if x1 > 0
@@ -1433,7 +1433,7 @@ ld_heaviside(const long double *x1, const long double *x2)
     }
 }
 
-static inline long double
+inline long double
 ld_hypot(const long double *x1, const long double *x2)
 {
     // hypot(x1, x2) = sqrt(x1^2 + x2^2)
@@ -1441,13 +1441,13 @@ ld_hypot(const long double *x1, const long double *x2)
     return hypotl(*x1, *x2);
 }
 
-static inline long double
+inline long double
 ld_nextafter(const long double *x1, const long double *x2)
 {
     return nextafterl(*x1, *x2);
 }
 
-static inline long double
+inline long double
 ld_spacing(const long double *x)
 {    
     // Handle NaN
@@ -1480,7 +1480,7 @@ ld_spacing(const long double *x)
 }
 
 // Unary operations with 2 outputs
-static inline void
+inline void
 quad_modf(const Sleef_quad *a, Sleef_quad *out_fractional, Sleef_quad *out_integral)
 {
     // int part stored in out_integral
@@ -1490,7 +1490,7 @@ quad_modf(const Sleef_quad *a, Sleef_quad *out_fractional, Sleef_quad *out_integ
 // Unary long double operations with 2 outputs  
 typedef void (*unary_op_2out_longdouble_def)(const long double *, long double *, long double *);
 
-static inline void
+inline void
 ld_modf(const long double *a, long double *out_fractional, long double *out_integral)
 {
     *out_fractional = modfl(*a, out_integral);
@@ -1499,37 +1499,37 @@ ld_modf(const long double *a, long double *out_fractional, long double *out_inte
 // comparison quad functions
 typedef npy_bool (*cmp_quad_def)(const Sleef_quad *, const Sleef_quad *);
 
-static inline npy_bool
+inline npy_bool
 quad_equal(const Sleef_quad *a, const Sleef_quad *b)
 {
     return Sleef_icmpeqq1(*a, *b);
 }
 
-static inline npy_bool
+inline npy_bool
 quad_notequal(const Sleef_quad *a, const Sleef_quad *b)
 {
     return Sleef_icmpneq1(*a, *b) || Sleef_iunordq1(*a, *b);
 }
 
-static inline npy_bool
+inline npy_bool
 quad_less(const Sleef_quad *a, const Sleef_quad *b)
 {
     return Sleef_icmpltq1(*a, *b);
 }
 
-static inline npy_bool
+inline npy_bool
 quad_lessequal(const Sleef_quad *a, const Sleef_quad *b)
 {
     return Sleef_icmpleq1(*a, *b);
 }
 
-static inline npy_bool
+inline npy_bool
 quad_greater(const Sleef_quad *a, const Sleef_quad *b)
 {
     return Sleef_icmpgtq1(*a, *b);
 }
 
-static inline npy_bool
+inline npy_bool
 quad_greaterequal(const Sleef_quad *a, const Sleef_quad *b)
 {
     return Sleef_icmpgeq1(*a, *b);
@@ -1538,37 +1538,37 @@ quad_greaterequal(const Sleef_quad *a, const Sleef_quad *b)
 // comparison quad functions
 typedef npy_bool (*cmp_londouble_def)(const long double *, const long double *);
 
-static inline npy_bool
+inline npy_bool
 ld_equal(const long double *a, const long double *b)
 {
     return *a == *b;
 }
 
-static inline npy_bool
+inline npy_bool
 ld_notequal(const long double *a, const long double *b)
 {
     return *a != *b;
 }
 
-static inline npy_bool
+inline npy_bool
 ld_less(const long double *a, const long double *b)
 {
     return *a < *b;
 }
 
-static inline npy_bool
+inline npy_bool
 ld_lessequal(const long double *a, const long double *b)
 {
     return *a <= *b;
 }
 
-static inline npy_bool
+inline npy_bool
 ld_greater(const long double *a, const long double *b)
 {
     return *a > *b;
 }
 
-static inline npy_bool
+inline npy_bool
 ld_greaterequal(const long double *a, const long double *b)
 {
     return *a >= *b;
@@ -1577,7 +1577,7 @@ ld_greaterequal(const long double *a, const long double *b)
 // Logical operations
 
 // Helper function to check if a Sleef_quad value is non-zero (truthy)
-static inline npy_bool
+inline npy_bool
 quad_is_nonzero(const Sleef_quad *a)
 {
     // A value is falsy if it's exactly zero (positive or negative)
@@ -1587,7 +1587,7 @@ quad_is_nonzero(const Sleef_quad *a)
 }
 
 // Helper function to check if a long double value is non-zero (truthy)
-static inline npy_bool
+inline npy_bool
 ld_is_nonzero(const long double *a)
 {
     // A value is falsy if it's exactly zero (positive or negative)
@@ -1596,32 +1596,32 @@ ld_is_nonzero(const long double *a)
 }
 
 
-static inline npy_bool
+inline npy_bool
 quad_logical_and(const Sleef_quad *a, const Sleef_quad *b)
 {
     return quad_is_nonzero(a) && quad_is_nonzero(b);
 }
 
-static inline npy_bool
+inline npy_bool
 ld_logical_and(const long double *a, const long double *b)
 {
     return ld_is_nonzero(a) && ld_is_nonzero(b);
 }
 
 
-static inline npy_bool
+inline npy_bool
 quad_logical_or(const Sleef_quad *a, const Sleef_quad *b)
 {
     return quad_is_nonzero(a) || quad_is_nonzero(b);
 }
 
-static inline npy_bool
+inline npy_bool
 ld_logical_or(const long double *a, const long double *b)
 {
     return ld_is_nonzero(a) || ld_is_nonzero(b);
 }
 
-static inline npy_bool
+inline npy_bool
 quad_logical_xor(const Sleef_quad *a, const Sleef_quad *b)
 {
     npy_bool a_truthy = quad_is_nonzero(a);
@@ -1629,7 +1629,7 @@ quad_logical_xor(const Sleef_quad *a, const Sleef_quad *b)
     return (a_truthy && !b_truthy) || (!a_truthy && b_truthy);
 }
 
-static inline npy_bool
+inline npy_bool
 ld_logical_xor(const long double *a, const long double *b)
 {
     npy_bool a_truthy = ld_is_nonzero(a);
@@ -1642,20 +1642,20 @@ ld_logical_xor(const long double *a, const long double *b)
 typedef npy_bool (*unary_logical_quad_def)(const Sleef_quad *);
 typedef npy_bool (*unary_logical_longdouble_def)(const long double *);
 
-static inline npy_bool
+inline npy_bool
 quad_logical_not(const Sleef_quad *a)
 {
     return !quad_is_nonzero(a);
 }
 
-static inline npy_bool
+inline npy_bool
 ld_logical_not(const long double *a)
 {
     return !ld_is_nonzero(a);
 }
 
 // Casting operations
-static inline double
+inline double
 cast_sleef_to_double(const Sleef_quad in)
 {
     if (quad_isnan(&in)) {
