@@ -1,7 +1,7 @@
 [wrap-git]
 directory=qblas
 url=https://github.com/SwayamInSync/QBLAS.git
-revision=LTS
+revision=1.x
 patch_directory = qblas
 
 [provide]
