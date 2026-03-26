@@ -87,4 +87,21 @@ quad_ufunc_promoter(PyUFuncObject *ufunc, PyArray_DTypeMeta *op_dtypes[],
 }
 
 
+inline int
+quad_ldexp_promoter(PyUFuncObject *ufunc, PyArray_DTypeMeta *op_dtypes[],
+                    PyArray_DTypeMeta *signature[], PyArray_DTypeMeta *new_op_dtypes[])
+{
+    Py_INCREF(&QuadPrecDType);
+    new_op_dtypes[0] = &QuadPrecDType;
+
+    // Preserve the integer type for the exponent (slot 1)
+    Py_INCREF(op_dtypes[1]);
+    new_op_dtypes[1] = op_dtypes[1];
+
+    Py_INCREF(&QuadPrecDType);
+    new_op_dtypes[2] = &QuadPrecDType;
+
+    return 0;
+}
+
 #endif
