@@ -5880,6 +5880,62 @@ def test_logical_reduce_on_non_quad_arrays():
     assert result == True
 
 
+class TestPromoterNoInterference:
+    """Regression tests for overly broad promoter registration.
+
+    Prior to the fix, promoters were registered with PyArrayDescr_Type in
+    all slots, matching ANY dtype combination. This caused the quaddtype
+    promoter to intercept operations on unrelated NumPy types (timedelta64,
+    float64, etc.), breaking normal NumPy functionality.
+
+    See https://github.com/numpy/numpy-quaddtype/issues/76
+    """
+
+    def test_timedelta_modulus_raises_typeerror(self):
+        """timedelta64 % int must raise TypeError, not be silently handled."""
+        with pytest.raises(TypeError, match="remainder"):
+            np.remainder(np.timedelta64(7, 'Y'), 15)
+
+    def test_timedelta_divide_preserves_dtype(self):
+        """timedelta64 / int must return timedelta64, not float64."""
+        a = np.arange(1000, dtype="m8[s]")
+        result = a.sum() / len(a)
+        assert result.dtype.kind == 'm', (
+            f"Expected timedelta64 dtype, got {result.dtype}")
+
+    def test_timedelta_mean_correct(self):
+        """timedelta mean must use timedelta division, not float promotion."""
+        a = np.arange(1000, dtype="m8[s]")
+        mean_val = a.mean()
+        sum_div = a.sum() / len(a)
+        np.testing.assert_array_equal(mean_val, sum_div)
+
+    @pytest.mark.parametrize("op", [
+        np.add, np.subtract, np.multiply, np.divide,
+        np.floor_divide, np.power, np.mod,
+    ])
+    def test_binary_ufunc_float64_preserves_dtype(self, op):
+        """Builtin float64 ops must not be affected by quad promoters."""
+        a = np.array([1.0, 2.0, 3.0], dtype=np.float64)
+        b = np.array([4.0, 5.0, 6.0], dtype=np.float64)
+        result = op(a, b)
+        assert result.dtype == np.float64
+
+    def test_matmul_float64_preserves_dtype(self):
+        a = np.eye(3, dtype=np.float64)
+        b = np.ones((3, 2), dtype=np.float64)
+        result = np.matmul(a, b)
+        assert result.dtype == np.float64
+        np.testing.assert_array_equal(result, b)
+
+    def test_divmod_float64_preserves_dtype(self):
+        a = np.array([7.0, 8.0], dtype=np.float64)
+        b = np.array([3.0, 3.0], dtype=np.float64)
+        q, r = np.divmod(a, b)
+        assert q.dtype == np.float64
+        assert r.dtype == np.float64
+
+
 def test_sleef_purecfma_symbols():
     """Test that SLEEF PURECFMA symbols are present in the compiled module.
     
