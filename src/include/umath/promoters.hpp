@@ -94,7 +94,7 @@ quad_ldexp_promoter(PyUFuncObject *ufunc, PyArray_DTypeMeta *op_dtypes[],
     Py_INCREF(&QuadPrecDType);
     new_op_dtypes[0] = &QuadPrecDType;
 
-    // Promote the exponent to PyLongDType (unless signature specifies otherwise)
+    // Promote the exponent to PyArray_IntpDType (unless signature specifies otherwise)
     if (signature[1] != NULL) {
         Py_INCREF(signature[1]);
         new_op_dtypes[1] = signature[1];
