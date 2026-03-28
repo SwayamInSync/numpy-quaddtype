@@ -296,8 +296,7 @@ quad_ldexp_resolve_descriptors(PyObject *self, PyArray_DTypeMeta *const dtypes[]
     Py_INCREF(given_descrs[0]);
     loop_descrs[0] = given_descrs[0];
 
-    // Input 1: Use NPY_INTP (int64 on 64-bit, int32 on 32-bit) to match platform integer size
-    // This ensures we can handle the full range of PyArray_PyLongDType without data loss
+    // Input 1: Use NPY_INTP to match the registered PyArray_IntpDType
     loop_descrs[1] = PyArray_DescrFromType(NPY_INTP);
 
     // Output: QuadPrecDType with same backend as input
@@ -408,7 +407,7 @@ create_quad_ldexp_ufunc(PyObject *numpy, const char *ufunc_name)
         return -1;
     }
 
-    PyArray_DTypeMeta *dtypes[3] = {&QuadPrecDType, &PyArray_PyLongDType, &QuadPrecDType};
+    PyArray_DTypeMeta *dtypes[3] = {&QuadPrecDType, &PyArray_IntpDType, &QuadPrecDType};
 
     PyType_Slot slots[] = {
             {NPY_METH_resolve_descriptors, (void *)&quad_ldexp_resolve_descriptors},
