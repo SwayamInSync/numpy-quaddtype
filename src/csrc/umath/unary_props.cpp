@@ -127,9 +127,11 @@ create_quad_unary_prop_ufunc(PyObject *numpy, const char *ufunc_name)
     };
 
     if (PyUFunc_AddLoopFromSpec(ufunc, &Spec) < 0) {
+        Py_DECREF(ufunc);
         return -1;
     }
 
+    Py_DECREF(ufunc);
     return 0;
 }
 

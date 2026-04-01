@@ -428,28 +428,33 @@ create_quad_ldexp_ufunc(PyObject *numpy, const char *ufunc_name)
     };
 
     if (PyUFunc_AddLoopFromSpec(ufunc, &Spec) < 0) {
+        Py_DECREF(ufunc);
         return -1;
     }
 
     PyObject *promoter_capsule =
             PyCapsule_New((void *)&quad_ldexp_promoter, "numpy._ufunc_promoter", NULL);
     if (promoter_capsule == NULL) {
+        Py_DECREF(ufunc);
         return -1;
     }
 
     PyObject *DTypes = PyTuple_Pack(3, &QuadPrecDType, &PyArrayDescr_Type, &PyArrayDescr_Type);
     if (DTypes == 0) {
         Py_DECREF(promoter_capsule);
+        Py_DECREF(ufunc);
         return -1;
     }
 
     if (PyUFunc_AddPromoter(ufunc, DTypes, promoter_capsule) < 0) {
         Py_DECREF(promoter_capsule);
         Py_DECREF(DTypes);
+        Py_DECREF(ufunc);
         return -1;
     }
     Py_DECREF(promoter_capsule);
     Py_DECREF(DTypes);
+    Py_DECREF(ufunc);
     return 0;
 }
 
@@ -485,12 +490,14 @@ create_quad_binary_2out_ufunc(PyObject *numpy, const char *ufunc_name)
     };
 
     if (PyUFunc_AddLoopFromSpec(ufunc, &Spec) < 0) {
+        Py_DECREF(ufunc);
         return -1;
     }
 
     PyObject *promoter_capsule =
             PyCapsule_New((void *)&quad_ufunc_promoter, "numpy._ufunc_promoter", NULL);
     if (promoter_capsule == NULL) {
+        Py_DECREF(ufunc);
         return -1;
     }
 
@@ -499,12 +506,14 @@ create_quad_binary_2out_ufunc(PyObject *numpy, const char *ufunc_name)
                                       &PyArrayDescr_Type, &PyArrayDescr_Type);
     if (DTypes == 0) {
         Py_DECREF(promoter_capsule);
+        Py_DECREF(ufunc);
         return -1;
     }
 
     if (PyUFunc_AddPromoter(ufunc, DTypes, promoter_capsule) < 0) {
         Py_DECREF(promoter_capsule);
         Py_DECREF(DTypes);
+        Py_DECREF(ufunc);
         return -1;
     }
     Py_DECREF(DTypes);
@@ -514,16 +523,19 @@ create_quad_binary_2out_ufunc(PyObject *numpy, const char *ufunc_name)
                              &PyArrayDescr_Type, &PyArrayDescr_Type);
     if (DTypes == 0) {
         Py_DECREF(promoter_capsule);
+        Py_DECREF(ufunc);
         return -1;
     }
 
     if (PyUFunc_AddPromoter(ufunc, DTypes, promoter_capsule) < 0) {
         Py_DECREF(promoter_capsule);
         Py_DECREF(DTypes);
+        Py_DECREF(ufunc);
         return -1;
     }
     Py_DECREF(promoter_capsule);
     Py_DECREF(DTypes);
+    Py_DECREF(ufunc);
     return 0;
 }
 
@@ -557,12 +569,14 @@ create_quad_binary_ufunc(PyObject *numpy, const char *ufunc_name)
     };
 
     if (PyUFunc_AddLoopFromSpec(ufunc, &Spec) < 0) {
+        Py_DECREF(ufunc);
         return -1;
     }
 
     PyObject *promoter_capsule =
             PyCapsule_New((void *)&quad_ufunc_promoter, "numpy._ufunc_promoter", NULL);
     if (promoter_capsule == NULL) {
+        Py_DECREF(ufunc);
         return -1;
     }
 
@@ -570,12 +584,14 @@ create_quad_binary_ufunc(PyObject *numpy, const char *ufunc_name)
     PyObject *DTypes = PyTuple_Pack(3, &QuadPrecDType, &PyArrayDescr_Type, &PyArrayDescr_Type);
     if (DTypes == 0) {
         Py_DECREF(promoter_capsule);
+        Py_DECREF(ufunc);
         return -1;
     }
 
     if (PyUFunc_AddPromoter(ufunc, DTypes, promoter_capsule) < 0) {
         Py_DECREF(promoter_capsule);
         Py_DECREF(DTypes);
+        Py_DECREF(ufunc);
         return -1;
     }
     Py_DECREF(DTypes);
@@ -584,16 +600,19 @@ create_quad_binary_ufunc(PyObject *numpy, const char *ufunc_name)
     DTypes = PyTuple_Pack(3, &PyArrayDescr_Type, &QuadPrecDType, &PyArrayDescr_Type);
     if (DTypes == 0) {
         Py_DECREF(promoter_capsule);
+        Py_DECREF(ufunc);
         return -1;
     }
 
     if (PyUFunc_AddPromoter(ufunc, DTypes, promoter_capsule) < 0) {
         Py_DECREF(promoter_capsule);
         Py_DECREF(DTypes);
+        Py_DECREF(ufunc);
         return -1;
     }
     Py_DECREF(promoter_capsule);
     Py_DECREF(DTypes);
+    Py_DECREF(ufunc);
     return 0;
 }
 

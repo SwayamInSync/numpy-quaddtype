@@ -12,9 +12,10 @@
 #include "../dtype.h"
 
 inline int
-quad_ufunc_promoter(PyUFuncObject *ufunc, PyArray_DTypeMeta *op_dtypes[],
-                    PyArray_DTypeMeta *signature[], PyArray_DTypeMeta *new_op_dtypes[])
+quad_ufunc_promoter(PyObject *ufunc_obj, PyArray_DTypeMeta *const op_dtypes[],
+                    PyArray_DTypeMeta *const signature[], PyArray_DTypeMeta *new_op_dtypes[])
 {
+    PyUFuncObject *ufunc = (PyUFuncObject *)ufunc_obj;
     int nin = ufunc->nin;
     int nargs = ufunc->nargs;
     PyArray_DTypeMeta *common = NULL;
@@ -88,8 +89,8 @@ quad_ufunc_promoter(PyUFuncObject *ufunc, PyArray_DTypeMeta *op_dtypes[],
 
 
 inline int
-quad_ldexp_promoter(PyUFuncObject *ufunc, PyArray_DTypeMeta *op_dtypes[],
-                    PyArray_DTypeMeta *signature[], PyArray_DTypeMeta *new_op_dtypes[])
+quad_ldexp_promoter(PyObject *ufunc_obj, PyArray_DTypeMeta *const op_dtypes[],
+                    PyArray_DTypeMeta *const signature[], PyArray_DTypeMeta *new_op_dtypes[])
 {
     Py_INCREF(&QuadPrecDType);
     new_op_dtypes[0] = &QuadPrecDType;
