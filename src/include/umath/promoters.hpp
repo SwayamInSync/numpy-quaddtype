@@ -12,9 +12,10 @@
 #include "../dtype.h"
 
 inline int
-quad_ufunc_promoter(PyUFuncObject *ufunc, PyArray_DTypeMeta *op_dtypes[],
-                    PyArray_DTypeMeta *signature[], PyArray_DTypeMeta *new_op_dtypes[])
+quad_ufunc_promoter(PyObject *ufunc_obj, PyArray_DTypeMeta *const op_dtypes[],
+                    PyArray_DTypeMeta *const signature[], PyArray_DTypeMeta *new_op_dtypes[])
 {
+    PyUFuncObject *ufunc = (PyUFuncObject *)ufunc_obj;
     int nin = ufunc->nin;
     int nargs = ufunc->nargs;
     PyArray_DTypeMeta *common = NULL;
@@ -56,7 +57,7 @@ quad_ufunc_promoter(PyUFuncObject *ufunc, PyArray_DTypeMeta *op_dtypes[],
     }
     // If no common output dtype, use standard promotion for inputs
     if (common == NULL) {
-        common = PyArray_PromoteDTypeSequence(nin, op_dtypes);
+        common = PyArray_PromoteDTypeSequence(nin, const_cast<PyArray_DTypeMeta **>(op_dtypes));
         if (common == NULL) {
             if (PyErr_ExceptionMatches(PyExc_TypeError)) {
                 PyErr_Clear();  // Do not propagate normal promotion errors
@@ -86,5 +87,28 @@ quad_ufunc_promoter(PyUFuncObject *ufunc, PyArray_DTypeMeta *op_dtypes[],
     return 0;
 }
 
+
+inline int
+quad_ldexp_promoter(PyObject *ufunc_obj, PyArray_DTypeMeta *const op_dtypes[],
+                    PyArray_DTypeMeta *const signature[], PyArray_DTypeMeta *new_op_dtypes[])
+{
+    Py_INCREF(&QuadPrecDType);
+    new_op_dtypes[0] = &QuadPrecDType;
+
+    // Promote the exponent to PyArray_IntpDType (unless signature specifies otherwise)
+    if (signature[1] != NULL) {
+        Py_INCREF(signature[1]);
+        new_op_dtypes[1] = signature[1];
+    }
+    else {
+        Py_INCREF(&PyArray_IntpDType);
+        new_op_dtypes[1] = &PyArray_IntpDType;
+    }
+
+    Py_INCREF(&QuadPrecDType);
+    new_op_dtypes[2] = &QuadPrecDType;
+
+    return 0;
+}
 
 #endif

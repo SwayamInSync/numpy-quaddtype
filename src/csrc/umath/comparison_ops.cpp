@@ -257,16 +257,17 @@ quad_reduce_comp_strided_loop_unaligned(PyArrayMethod_Context *context, char *co
 
 
 NPY_NO_EXPORT int
-comparison_ufunc_promoter(PyUFuncObject *ufunc, PyArray_DTypeMeta *op_dtypes[],
-                          PyArray_DTypeMeta *signature[], PyArray_DTypeMeta *new_op_dtypes[])
+comparison_ufunc_promoter(PyObject *ufunc_obj, PyArray_DTypeMeta *const op_dtypes[],
+                          PyArray_DTypeMeta *const signature[], PyArray_DTypeMeta *new_op_dtypes[])
 {
     PyArray_DTypeMeta *new_signature[NPY_MAXARGS];
     memcpy(new_signature, signature, 3 * sizeof(PyArray_DTypeMeta *));
     new_signature[2] = NULL;
-    int res = quad_ufunc_promoter(ufunc, op_dtypes, new_signature, new_op_dtypes);
+    int res = quad_ufunc_promoter(ufunc_obj, op_dtypes, new_signature, new_op_dtypes);
     if (res < 0) {
         return -1;
     }
+    Py_INCREF(&PyArray_BoolDType);
     Py_XSETREF(new_op_dtypes[2], &PyArray_BoolDType);
     return 0;
 }
@@ -301,6 +302,7 @@ create_quad_comparison_ufunc(PyObject *numpy, const char *ufunc_name)
     };
 
     if (PyUFunc_AddLoopFromSpec(ufunc, &Spec) < 0) {
+        Py_DECREF(ufunc);
         return -1;
     }
 
@@ -326,12 +328,14 @@ create_quad_comparison_ufunc(PyObject *numpy, const char *ufunc_name)
     };
 
     if (PyUFunc_AddLoopFromSpec(ufunc, &Spec_reduce) < 0) {
+        Py_DECREF(ufunc);
         return -1;
     }
 
     PyObject *promoter_capsule =
             PyCapsule_New((void *)&comparison_ufunc_promoter, "numpy._ufunc_promoter", NULL);
     if (promoter_capsule == NULL) {
+        Py_DECREF(ufunc);
         return -1;
     }
 
@@ -339,12 +343,14 @@ create_quad_comparison_ufunc(PyObject *numpy, const char *ufunc_name)
     PyObject *DTypes = PyTuple_Pack(3, &QuadPrecDType, &PyArrayDescr_Type, &PyArray_BoolDType);
     if (DTypes == 0) {
         Py_DECREF(promoter_capsule);
+        Py_DECREF(ufunc);
         return -1;
     }
 
     if (PyUFunc_AddPromoter(ufunc, DTypes, promoter_capsule) < 0) {
         Py_DECREF(promoter_capsule);
         Py_DECREF(DTypes);
+        Py_DECREF(ufunc);
         return -1;
     }
     Py_DECREF(DTypes);
@@ -353,16 +359,19 @@ create_quad_comparison_ufunc(PyObject *numpy, const char *ufunc_name)
     DTypes = PyTuple_Pack(3, &PyArrayDescr_Type, &QuadPrecDType, &PyArray_BoolDType);
     if (DTypes == 0) {
         Py_DECREF(promoter_capsule);
+        Py_DECREF(ufunc);
         return -1;
     }
 
     if (PyUFunc_AddPromoter(ufunc, DTypes, promoter_capsule) < 0) {
         Py_DECREF(promoter_capsule);
         Py_DECREF(DTypes);
+        Py_DECREF(ufunc);
         return -1;
     }
     Py_DECREF(promoter_capsule);
     Py_DECREF(DTypes);
+    Py_DECREF(ufunc);
 
     return 0;
 }
