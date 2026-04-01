@@ -138,9 +138,11 @@ create_quad_unary_ufunc(PyObject *numpy, const char *ufunc_name)
     };
 
     if (PyUFunc_AddLoopFromSpec(ufunc, &Spec) < 0) {
+        Py_DECREF(ufunc);
         return -1;
     }
 
+    Py_DECREF(ufunc);
     return 0;
 }
 
@@ -261,9 +263,11 @@ create_quad_logical_not_ufunc(PyObject *numpy, const char *ufunc_name)
     };
 
     if (PyUFunc_AddLoopFromSpec(ufunc, &Spec) < 0) {
+        Py_DECREF(ufunc);
         return -1;
     }
 
+    Py_DECREF(ufunc);
     return 0;
 }
 
@@ -402,9 +406,11 @@ create_quad_unary_2out_ufunc(PyObject *numpy, const char *ufunc_name)
     };
 
     if (PyUFunc_AddLoopFromSpec(ufunc, &Spec) < 0) {
+        Py_DECREF(ufunc);
         return -1;
     }
 
+    Py_DECREF(ufunc);
     return 0;
 }
 
@@ -561,9 +567,11 @@ create_quad_frexp_ufunc(PyObject *numpy, const char *ufunc_name)
     };
 
     if (PyUFunc_AddLoopFromSpec(ufunc, &Spec) < 0) {
+        Py_DECREF(ufunc);
         return -1;
     }
 
+    Py_DECREF(ufunc);
     return 0;
 }
 
