@@ -16,14 +16,11 @@ quad_ufunc_promoter(PyObject *ufunc_obj, PyArray_DTypeMeta *const op_dtypes[],
                     PyArray_DTypeMeta *const signature[], PyArray_DTypeMeta *new_op_dtypes[])
 {
     PyUFuncObject *ufunc = (PyUFuncObject *)ufunc_obj;
-    int nin = ufunc->nin;
     int nargs = ufunc->nargs;
-    PyArray_DTypeMeta *common = NULL;
-    bool has_quad = false;
 
     // Handle the special case for reductions
     if (op_dtypes[0] == NULL) {
-        assert(nin == 2 && ufunc->nout == 1); /* must be reduction */
+        assert(ufunc->nin == 2 && ufunc->nout == 1); /* must be reduction */
         for (int i = 0; i < 3; i++) {
             Py_INCREF(op_dtypes[1]);
             new_op_dtypes[i] = op_dtypes[1];
@@ -31,58 +28,18 @@ quad_ufunc_promoter(PyObject *ufunc_obj, PyArray_DTypeMeta *const op_dtypes[],
         return 0;
     }
 
-    // Check if any input or signature is QuadPrecision
-    for (int i = 0; i < nin; i++) {
-        if (op_dtypes[i] == &QuadPrecDType) {
-            has_quad = true;
-        }
-    }
-
-    if (has_quad) {
-        common = &QuadPrecDType;
-    }
-    else {
-        for (int i = nin; i < nargs; i++) {
-            if (signature[i] != NULL) {
-                if (common == NULL) {
-                    Py_INCREF(signature[i]);
-                    common = signature[i];
-                }
-                else if (common != signature[i]) {
-                    Py_CLEAR(common);  // Not homogeneous, unset common
-                    break;
-                }
-            }
-        }
-    }
-    // If no common output dtype, use standard promotion for inputs
-    if (common == NULL) {
-        common = PyArray_PromoteDTypeSequence(nin, const_cast<PyArray_DTypeMeta **>(op_dtypes));
-        if (common == NULL) {
-            if (PyErr_ExceptionMatches(PyExc_TypeError)) {
-                PyErr_Clear();  // Do not propagate normal promotion errors
-            }
-
-            return -1;
-        }
-    }
-
-    // Set all new_op_dtypes to the common dtype
+    // This promoter is only registered for patterns where at least one
+    // input is QuadPrecDType, so we always promote all args to QuadPrecDType.
     for (int i = 0; i < nargs; i++) {
         if (signature[i]) {
-            // If signature is specified for this argument, use it
             Py_INCREF(signature[i]);
             new_op_dtypes[i] = signature[i];
         }
         else {
-            // Otherwise, use the common dtype
-            Py_INCREF(common);
-
-            new_op_dtypes[i] = common;
+            Py_INCREF(&QuadPrecDType);
+            new_op_dtypes[i] = &QuadPrecDType;
         }
     }
-
-    Py_XDECREF(common);
 
     return 0;
 }

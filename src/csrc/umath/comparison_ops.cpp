@@ -260,15 +260,31 @@ NPY_NO_EXPORT int
 comparison_ufunc_promoter(PyObject *ufunc_obj, PyArray_DTypeMeta *const op_dtypes[],
                           PyArray_DTypeMeta *const signature[], PyArray_DTypeMeta *new_op_dtypes[])
 {
-    PyArray_DTypeMeta *new_signature[NPY_MAXARGS];
-    memcpy(new_signature, signature, 3 * sizeof(PyArray_DTypeMeta *));
-    new_signature[2] = NULL;
-    int res = quad_ufunc_promoter(ufunc_obj, op_dtypes, new_signature, new_op_dtypes);
-    if (res < 0) {
-        return -1;
+    // Reduction: accumulator is Bool, element is QuadPrecDType, output is Bool
+    if (op_dtypes[0] == NULL) {
+        Py_INCREF(&PyArray_BoolDType);
+        new_op_dtypes[0] = &PyArray_BoolDType;
+        Py_INCREF(op_dtypes[1]);
+        new_op_dtypes[1] = op_dtypes[1];
+        Py_INCREF(&PyArray_BoolDType);
+        new_op_dtypes[2] = &PyArray_BoolDType;
+        return 0;
     }
+
+    // Normal path: promote both inputs to QuadPrecDType, output is Bool
+    for (int i = 0; i < 2; i++) {
+        if (signature[i]) {
+            Py_INCREF(signature[i]);
+            new_op_dtypes[i] = signature[i];
+        }
+        else {
+            Py_INCREF(&QuadPrecDType);
+            new_op_dtypes[i] = &QuadPrecDType;
+        }
+    }
+
     Py_INCREF(&PyArray_BoolDType);
-    Py_XSETREF(new_op_dtypes[2], &PyArray_BoolDType);
+    new_op_dtypes[2] = &PyArray_BoolDType;
     return 0;
 }
 
