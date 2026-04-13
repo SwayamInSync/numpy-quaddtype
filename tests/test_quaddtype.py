@@ -3544,6 +3544,17 @@ def test_conj_conjugate_identity(func, value):
         assert result == x
 
 
+def test_array_conjugate_method():
+    """Test that .conj() works on quaddtype arrays (goes through PyArray_Conjugate).
+
+    Regression test for https://github.com/numpy/numpy/pull/31193
+    """
+    arr = np.array([1.5, -2.5, 0.0], dtype=QuadPrecDType())
+    result = arr.conj()
+    assert result.dtype == arr.dtype
+    np.testing.assert_array_equal(result.astype(float), [1.5, -2.5, 0.0])
+
+
 @pytest.mark.parametrize("x1,x2,expected", [
     # Basic Pythagorean triples
     (3.0, 4.0, 5.0),
