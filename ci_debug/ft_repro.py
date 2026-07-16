@@ -48,6 +48,38 @@ def run(label, fn):
         print("  %-46s -> ERROR %s: %s" % (label, type(e).__name__, e))
 
 
+def cpu_info():
+    import platform
+    lines = []
+    try:
+        import numpy._core._multiarray_umath as _mu
+        lines.append("  numpy baseline      : %s" % (getattr(_mu, "__cpu_baseline__", "?"),))
+        lines.append("  numpy dispatch      : %s" % (getattr(_mu, "__cpu_dispatch__", "?"),))
+    except Exception as e:  # noqa: BLE001
+        lines.append("  numpy cpu features  : <err %s>" % e)
+    lines.append("  platform.processor  : %r" % platform.processor())
+    lines.append("  platform.machine    : %r" % platform.machine())
+    lines.append("  PROCESSOR_IDENTIFIER: %r" % os.environ.get("PROCESSOR_IDENTIFIER"))
+    brand = None
+    for cmd in (
+        ["powershell", "-NoProfile", "-Command", "(Get-CimInstance Win32_Processor).Name"],
+        ["wmic", "cpu", "get", "name"],
+    ):
+        try:
+            out = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            txt = " / ".join(
+                ln.strip() for ln in out.stdout.splitlines()
+                if ln.strip() and ln.strip() != "Name"
+            )
+            if txt:
+                brand = txt
+                break
+        except Exception:  # noqa: BLE001
+            continue
+    lines.append("  CPU brand           : %r" % (brand,))
+    return "\n".join(lines)
+
+
 TAG = "FT" if not gil_enabled() else "GIL"
 
 print("\n########## quaddtype win-ft probe [%s] ##########" % TAG)
@@ -55,6 +87,8 @@ print("python    : %s  gil_enabled=%s" % (sys.version.split()[0], gil_enabled())
 print("numpy     : %s" % np.__version__)
 print("quaddtype : %s" % getattr(nq, "__version__", "?"))
 run("is_longdouble_128", nq.is_longdouble_128)
+print("[%s] CPU / SIMD environment:" % TAG)
+print(cpu_info())
 
 print("[%s] PURE numpy special-value checks (NO quaddtype involved):" % TAG)
 run("np.isinf(float('inf'))", lambda: np.isinf(float("inf")))
