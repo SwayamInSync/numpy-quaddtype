@@ -15,11 +15,12 @@ on:
 jobs:
   debug_windows_ft:
     name: Debug Windows FT (cp313 vs cp313t)
-    # Use the STABLE MSVC (VS 2022 / MSVC 14.4x) instead of windows-latest
-    # (which is windows-2025-vs2026 -> preview MSVC 14.51 that miscompiles
-    # numpy's npy_isnan/npy_isinf in the from-source cp313t build). If cp313t
-    # now reports all True, the preview compiler is confirmed as the cause.
-    runs-on: windows-2022
+    # Back on windows-latest (windows-2025-vs2026 -> PREVIEW MSVC 14.51) ON PURPOSE
+    # for this run: compare cp313t (no PyPI numpy wheel -> numpy SOURCE-BUILT with
+    # 14.51 -> expected BROKEN) vs cp314t (PyPI ships a prebuilt numpy wheel ->
+    # numpy NOT built by 14.51 -> expected FINE). Confirms the bug is the numpy
+    # source-build compiler, and tells us whether 3.14t is safe on the preview image.
+    runs-on: windows-latest
     strategy:
       matrix:
         architecture: [x64]
@@ -49,9 +50,9 @@ jobs:
 
       - name: Build wheels and run FT probe (cp313, cp313t)
         env:
-          # Only the two interpreters we need to compare -> much faster than the
-          # full matrix.
-          CIBW_BUILD: "cp313-* cp313t-*"
+          # cp313t: numpy has NO cp313t win wheel -> source-built with preview MSVC.
+          # cp314t: numpy HAS a prebuilt cp314t win wheel -> not built by preview MSVC.
+          CIBW_BUILD: "cp313t-* cp314t-*"
           CIBW_ENABLE: cpython-prerelease cpython-freethreading
           CIBW_ARCHS_WINDOWS: ${{ matrix.architecture == 'x86' && 'x86' || 'AMD64' }}
           CIBW_BUILD_VERBOSITY: "3"
@@ -62,7 +63,8 @@ jobs:
           # the actual values and always exits 0, so BOTH wheels' output lands in
           # the log for a direct [GIL] vs [FT] comparison.
           CIBW_TEST_COMMAND_WINDOWS: pip install numpy && pip install --no-deps {wheel} && python {project}/ci_debug/ft_repro.py
-          CIBW_TEST_EXTRAS: test
+          # No CIBW_TEST_EXTRAS: the probe only needs numpy + the wheel; installing
+          # the [test] extra (pandas) can lack a cp314t wheel and stall the run.
         shell: pwsh
         run: |
           python -m cibuildwheel --output-dir wheelhouse
