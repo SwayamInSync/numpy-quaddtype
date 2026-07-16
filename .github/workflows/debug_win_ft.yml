@@ -15,7 +15,11 @@ on:
 jobs:
   debug_windows_ft:
     name: Debug Windows FT (cp313 vs cp313t)
-    runs-on: windows-latest
+    # Use the STABLE MSVC (VS 2022 / MSVC 14.4x) instead of windows-latest
+    # (which is windows-2025-vs2026 -> preview MSVC 14.51 that miscompiles
+    # numpy's npy_isnan/npy_isinf in the from-source cp313t build). If cp313t
+    # now reports all True, the preview compiler is confirmed as the cause.
+    runs-on: windows-2022
     strategy:
       matrix:
         architecture: [x64]
