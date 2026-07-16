@@ -49,6 +49,17 @@ print("numpy     : %s" % np.__version__)
 print("quaddtype : %s" % getattr(nq, "__version__", "?"))
 run("is_longdouble_128", nq.is_longdouble_128)
 
+print("[%s] PURE numpy special-value checks (NO quaddtype involved):" % TAG)
+run("np.isinf(float('inf'))", lambda: np.isinf(float("inf")))
+run("np.isnan(float('nan'))", lambda: np.isnan(float("nan")))
+run("np.isinf(np.inf)", lambda: np.isinf(np.inf))
+run("np.isinf(np.float64('inf'))", lambda: np.isinf(np.float64("inf")))
+run("np.isnan(np.float64('nan'))", lambda: np.isnan(np.float64("nan")))
+run("np.isinf(np.array([np.inf]))[0]", lambda: np.isinf(np.array([np.inf]))[0])
+run("bool(np.isinf(1e400))", lambda: bool(np.isinf(1e400)))
+run("float(Q('inf'))==float('inf')", lambda: float(Q("inf")) == float("inf"))
+run("type(float(Q('inf')))", lambda: type(float(Q("inf"))).__name__)
+
 print("[%s] string -> quad (special values + a couple normals):" % TAG)
 for s in ["inf", "-inf", "nan", "-nan", "Infinity", "1.5", "0.1"]:
     run("Q(%r)" % s, lambda s=s: "float=%s bits=%s" % (fval(Q(s)), bits(Q(s))))
