@@ -8,7 +8,14 @@ see exactly what diverges.
 This is a diagnostic, not a gate: it never raises to the shell (always exits 0),
 so both wheels' output is captured in the CI log.
 """
+import os
+import subprocess
 import sys
+
+try:
+    sys.stdout.reconfigure(line_buffering=True)  # keep subprocess output in order
+except Exception:  # noqa: BLE001
+    pass
 
 import numpy as np
 import numpy_quaddtype as nq
@@ -60,6 +67,30 @@ run("bool(np.isinf(1e400))", lambda: bool(np.isinf(1e400)))
 run("float(Q('inf'))==float('inf')", lambda: float(Q("inf")) == float("inf"))
 run("type(float(Q('inf')))", lambda: type(float(Q("inf"))).__name__)
 
+# ---- BRANCH LOCALIZATION: same np.isinf, different input stride/shape ---------
+# The CPU-dispatched DOUBLE_isinf loop branches on the INPUT stride:
+#   0-D scalar   -> input stride 0        -> NCONTIG branch
+#   1-D contig   -> stride == itemsize    -> CONTIG branch (this one works on FT-win)
+#   1-D non-cont -> stride != itemsize, !0 -> NCONTIG branch (stride != 0)
+# Comparing these tells us whether the fault is stride==0 only, any NCONTIG, or the
+# small-count scalar tail in general.
+print("[%s] BRANCH LOCALIZATION (isinf, varying input stride/shape):" % TAG)
+run("0-D    isinf(np.array(np.inf))", lambda: bool(np.isinf(np.array(np.inf))))
+run("1-Dx1  isinf([inf])[0]", lambda: bool(np.isinf(np.array([np.inf]))[0]))
+run("1-Dx2  isinf([inf,inf])[0]", lambda: bool(np.isinf(np.array([np.inf, np.inf]))[0]))
+run("1-Dx9  isinf([inf]*9).all()", lambda: bool(np.isinf(np.array([np.inf] * 9)).all()))
+run("1-Dnc  isinf([inf,1][::2])[0]", lambda: bool(np.isinf(np.array([np.inf, 1.0])[::2])[0]))
+
+# Same-dtype unary ufuncs go through the SCALAR FAST PATH (try_trivial_scalar_call),
+# unlike isinf/isnan (bool output) which bail out of it. If these are ALSO wrong,
+# the fast path is implicated; if they are fine, the fault is the normal 0-D path.
+print("[%s] SAME-DTYPE fast-path scalar ufuncs (should be unaffected if 0-D path):" % TAG)
+run("negative(np.inf)", lambda: float(np.negative(np.inf)))
+run("negative(np.float64 inf)", lambda: float(np.negative(np.float64("inf"))))
+run("absolute(np.float64 -inf)", lambda: float(np.absolute(np.float64("-inf"))))
+run("sqrt(np.float64 inf)", lambda: float(np.sqrt(np.float64("inf"))))
+run("signbit(np.float64 -inf)", lambda: bool(np.signbit(np.float64("-inf"))))
+
 print("[%s] string -> quad (special values + a couple normals):" % TAG)
 for s in ["inf", "-inf", "nan", "-nan", "Infinity", "1.5", "0.1"]:
     run("Q(%r)" % s, lambda s=s: "float=%s bits=%s" % (fval(Q(s)), bits(Q(s))))
@@ -93,5 +124,34 @@ def _mm():
     Im = np.array([[Q("1"), Q("0")], [Q("0"), Q("1")]])
     return fval(np.matmul(A, Im)[0, 0])
 run("matmul(inf-matrix, I)[0,0]", _mm)
+
+# ---- SIMD-DISABLED re-check: force the baseline (non-dispatched) loop -----------
+# NPY_DISABLE_CPU_FEATURES is read at import, so re-run the key scalars in a fresh
+# subprocess with every dispatched CPU feature disabled. If scalar isinf/isnan then
+# become correct on FT-Windows, the fault is the CPU-dispatched SIMD DOUBLE_isinf
+# codegen; if still wrong, it is the baseline/generic path.
+print("[%s] SIMD-DISABLED re-check (baseline loop via NPY_DISABLE_CPU_FEATURES):" % TAG)
+try:
+    import numpy._core._multiarray_umath as _mu
+    _feats = " ".join(getattr(_mu, "__cpu_dispatch__", []) or [])
+except Exception as e:  # noqa: BLE001
+    _feats = ""
+    print("   could not read __cpu_dispatch__: %s" % e)
+print("   dispatched features being disabled: %s" % (_feats or "(none)"))
+_mini = (
+    "import numpy as np;"
+    "print('   [nosimd] numpy', np.__version__);"
+    "print('   [nosimd] isinf(np.inf)         =', np.isinf(np.inf));"
+    "print('   [nosimd] isnan(np.float64 nan) =', np.isnan(np.float64('nan')));"
+    "print('   [nosimd] isinf([inf])[0]       =', np.isinf(np.array([np.inf]))[0])"
+)
+_env = dict(os.environ)
+if _feats:
+    _env["NPY_DISABLE_CPU_FEATURES"] = _feats
+sys.stdout.flush()
+try:
+    subprocess.run([sys.executable, "-c", _mini], env=_env, check=False)
+except Exception as e:  # noqa: BLE001
+    print("   subprocess failed: %s" % e)
 
 print("########## end probe [%s] ##########\n" % TAG)
