@@ -6549,6 +6549,22 @@ class TestObjectPromotion:
         np.testing.assert_array_equal(result, expected, strict=True)
 
     @pytest.mark.parametrize("backend", ["sleef", "longdouble"], indirect=True)
+    @pytest.mark.parametrize("op", [np.equal, np.less])
+    @pytest.mark.parametrize("reverse", [False, True])
+    def test_comparison_honours_explicit_object_dtype(self, operands, op, reverse):
+        # Comparisons default to a bool result, but NumPy also lets an object
+        # result be requested explicitly. That needs a promoter whose output slot
+        # is Object; the Bool ones cannot match it.
+        quad, objects = operands
+        left, right = (objects, quad) if reverse else (quad, objects)
+
+        result = op(left, right, dtype=object)
+        expected = op(left.astype(object), right.astype(object), dtype=object)
+
+        assert result.dtype == np.dtype(object)
+        np.testing.assert_array_equal(result, expected, strict=True)
+
+    @pytest.mark.parametrize("backend", ["sleef", "longdouble"], indirect=True)
     @pytest.mark.parametrize("op", [np.logical_and, np.logical_or])
     @pytest.mark.parametrize("reverse", [False, True])
     def test_logical_uses_object_loop(self, operands, op, reverse):
@@ -6567,6 +6583,11 @@ class TestObjectPromotion:
         quad, objects = operands
         left, right = (objects, quad) if reverse else (quad, objects)
 
+        # NumPy has no dedicated object loop for logical_xor, so its generic
+        # fallback calls a method named after the ufunc on each element, i.e.
+        # `int.logical_xor`, which does not exist. That AttributeError is plain
+        # NumPy behaviour on two object arrays; we assert we reproduce it rather
+        # than inventing a quad-specific result.
         with pytest.raises(AttributeError):
             np.logical_xor(left.astype(object), right.astype(object))
         with pytest.raises(AttributeError):
@@ -6593,6 +6614,9 @@ class TestObjectPromotion:
         quad, objects = operands
         left, right = (objects, quad) if reverse else (quad, objects)
 
+        # np.divmod registers no object loop at all (unlike floor_divide and
+        # remainder, which both have OO->O), so divmod on two object arrays is a
+        # TypeError in plain NumPy. Deferring to NumPy means we raise it too.
         with pytest.raises(TypeError):
             np.divmod(left, right)
 
