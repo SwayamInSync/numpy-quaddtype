@@ -15,6 +15,7 @@ extern "C" {
 }
 #include <cstring>
 #include <cstdlib>
+#include <new>
 #include <type_traits>
 #include "sleef.h"
 #include "sleefquad.h"
@@ -1828,7 +1829,7 @@ init_casts(void)
     try {
         return init_casts_internal();
     }
-    catch (int e) {
+    catch (const std::bad_alloc &) {
         PyErr_NoMemory();
         return nullptr;
     }

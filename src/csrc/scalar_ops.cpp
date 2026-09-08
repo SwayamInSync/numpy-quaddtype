@@ -78,6 +78,7 @@ quad_binary_func(PyObject *op1, PyObject *op2)
         other_quad = (QuadPrecisionObject *)other;
         if (other_quad->backend != backend) {
             PyErr_SetString(PyExc_TypeError, "Cannot mix QuadPrecision backends");
+            Py_DECREF(other_quad);
             Py_DECREF(other);
             return NULL;
         }

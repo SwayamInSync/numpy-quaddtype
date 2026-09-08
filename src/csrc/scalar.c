@@ -200,6 +200,10 @@ QuadPrecision_from_object(PyObject *value, QuadBackendType backend)
     }
     else if (PyUnicode_Check(value)) {
         const char *s = PyUnicode_AsUTF8(value);
+        if (s == NULL) {
+            Py_DECREF(self);
+            return NULL;
+        }
         char *endptr = NULL;
         int err = NumPyOS_ascii_strtoq(s, backend, &self->value, &endptr);
         if (err < 0) {
@@ -248,6 +252,9 @@ QuadPrecision_from_object(PyObject *value, QuadBackendType backend)
         QuadPrecisionObject *quad_obj = (QuadPrecisionObject *)value;
         // create a new one with the same backend
         QuadPrecisionObject *self = QuadPrecision_raw_new(quad_obj->backend);
+        if (self == NULL) {
+            return NULL;
+        }
         if (quad_obj->backend == BACKEND_SLEEF) {
             self->value.sleef_value = quad_obj->value.sleef_value;
         }
@@ -620,7 +627,10 @@ QuadPrecision_as_integer_ratio(QuadPrecisionObject *self, PyObject *Py_UNUSED(ig
     }
 
     Py_DECREF(py_exp);
-    return PyTuple_Pack(2, numerator, denominator);
+    PyObject *ratio = PyTuple_Pack(2, numerator, denominator);
+    Py_DECREF(numerator);
+    Py_DECREF(denominator);
+    return ratio;
 }
 
 static int
