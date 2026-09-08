@@ -31,6 +31,10 @@ quad_matmul_resolve_descriptors(PyObject *self, PyArray_DTypeMeta *const dtypes[
                                 PyArray_Descr *const given_descrs[], PyArray_Descr *loop_descrs[],
                                 npy_intp *NPY_UNUSED(view_offset))
 {
+    for (int i = 0; i < 3; i++) {
+        loop_descrs[i] = NULL;
+    }
+
     QuadPrecDTypeObject *descr_in1 = (QuadPrecDTypeObject *)given_descrs[0];
     QuadPrecDTypeObject *descr_in2 = (QuadPrecDTypeObject *)given_descrs[1];
 
@@ -39,7 +43,7 @@ quad_matmul_resolve_descriptors(PyObject *self, PyArray_DTypeMeta *const dtypes[
         PyErr_SetString(PyExc_NotImplementedError,
                         "QBLAS-accelerated matmul only supports SLEEF backend. "
                         "Please raise the issue at SwayamInSync/QBLAS for longdouble support");
-        return (NPY_CASTING)-1;
+        return quad_resolve_descrs_fail(loop_descrs, 3);
     }
 
     // Both inputs must use SLEEF backend
@@ -56,7 +60,7 @@ quad_matmul_resolve_descriptors(PyObject *self, PyArray_DTypeMeta *const dtypes[
     if (given_descrs[2] == NULL) {
         loop_descrs[2] = (PyArray_Descr *)new_quaddtype_instance(target_backend);
         if (!loop_descrs[2]) {
-            return (NPY_CASTING)-1;
+            return quad_resolve_descrs_fail(loop_descrs, 3);
         }
     }
     else {
@@ -65,7 +69,7 @@ quad_matmul_resolve_descriptors(PyObject *self, PyArray_DTypeMeta *const dtypes[
             PyErr_SetString(PyExc_NotImplementedError,
                         "QBLAS-accelerated matmul only supports SLEEF backend. "
                         "Please raise the issue at SwayamInSync/QBLAS for longdouble support");
-            return (NPY_CASTING)-1;
+            return quad_resolve_descrs_fail(loop_descrs, 3);
         }
         else {
             Py_INCREF(given_descrs[2]);

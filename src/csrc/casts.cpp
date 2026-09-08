@@ -240,10 +240,13 @@ unicode_to_quad_resolve_descriptors(PyObject *NPY_UNUSED(self), PyArray_DTypeMet
                                     PyArray_Descr *given_descrs[2], PyArray_Descr *loop_descrs[2],
                                     npy_intp *view_offset)
 {
+    loop_descrs[0] = NULL;
+    loop_descrs[1] = NULL;
+
     if (!PyArray_ISNBO(given_descrs[0]->byteorder)) {
         loop_descrs[0] = PyArray_DescrNewByteorder(given_descrs[0], NPY_NATIVE);
         if (loop_descrs[0] == nullptr) {
-            return (NPY_CASTING)-1;
+            return quad_resolve_descrs_fail(loop_descrs, 2);
         }
     }
     else {
@@ -254,8 +257,7 @@ unicode_to_quad_resolve_descriptors(PyObject *NPY_UNUSED(self), PyArray_DTypeMet
     if (given_descrs[1] == NULL) {
         loop_descrs[1] = (PyArray_Descr *)new_quaddtype_instance(BACKEND_SLEEF);
         if (loop_descrs[1] == nullptr) {
-            Py_DECREF(loop_descrs[0]);
-            return (NPY_CASTING)-1;
+            return quad_resolve_descrs_fail(loop_descrs, 2);
         }
     }
     else {
@@ -350,6 +352,9 @@ quad_to_unicode_resolve_descriptors(PyObject *NPY_UNUSED(self), PyArray_DTypeMet
                                     PyArray_Descr *given_descrs[2], PyArray_Descr *loop_descrs[2],
                                     npy_intp *view_offset)
 {
+    loop_descrs[0] = NULL;
+    loop_descrs[1] = NULL;
+
     npy_intp required_size_chars = QUAD_STR_WIDTH;
     npy_intp required_size_bytes = required_size_chars * 4;  // UCS4 = 4 bytes per char
 
@@ -360,8 +365,7 @@ quad_to_unicode_resolve_descriptors(PyObject *NPY_UNUSED(self), PyArray_DTypeMet
         // Create descriptor with required size
         PyArray_Descr *unicode_descr = PyArray_DescrNewFromType(NPY_UNICODE);
         if (unicode_descr == nullptr) {
-            Py_DECREF(loop_descrs[0]);
-            return (NPY_CASTING)-1;
+            return quad_resolve_descrs_fail(loop_descrs, 2);
         }
 
         unicode_descr->elsize = required_size_bytes;
@@ -373,8 +377,7 @@ quad_to_unicode_resolve_descriptors(PyObject *NPY_UNUSED(self), PyArray_DTypeMet
         if (!PyArray_ISNBO(given_descrs[1]->byteorder)) {
             loop_descrs[1] = PyArray_DescrNewByteorder(given_descrs[1], NPY_NATIVE);
             if (loop_descrs[1] == nullptr) {
-                Py_DECREF(loop_descrs[0]);
-                return (NPY_CASTING)-1;
+                return quad_resolve_descrs_fail(loop_descrs, 2);
             }
         }
         else {
@@ -545,6 +548,9 @@ bytes_to_quad_resolve_descriptors(PyObject *NPY_UNUSED(self), PyArray_DTypeMeta 
                                    PyArray_Descr *given_descrs[2], PyArray_Descr *loop_descrs[2],
                                    npy_intp *view_offset)
 {
+    loop_descrs[0] = NULL;
+    loop_descrs[1] = NULL;
+
     // Bytes dtype doesn't have byte order concerns like Unicode
     Py_INCREF(given_descrs[0]);
     loop_descrs[0] = given_descrs[0];
@@ -552,8 +558,7 @@ bytes_to_quad_resolve_descriptors(PyObject *NPY_UNUSED(self), PyArray_DTypeMeta 
     if (given_descrs[1] == NULL) {
         loop_descrs[1] = (PyArray_Descr *)new_quaddtype_instance(BACKEND_SLEEF);
         if (loop_descrs[1] == nullptr) {
-            Py_DECREF(loop_descrs[0]);
-            return (NPY_CASTING)-1;
+            return quad_resolve_descrs_fail(loop_descrs, 2);
         }
     }
     else {
@@ -650,12 +655,15 @@ quad_to_bytes_resolve_descriptors(PyObject *NPY_UNUSED(self), PyArray_DTypeMeta 
                                    PyArray_Descr *given_descrs[2], PyArray_Descr *loop_descrs[2],
                                    npy_intp *view_offset)
 {
+    loop_descrs[0] = NULL;
+    loop_descrs[1] = NULL;
+
     npy_intp required_size_bytes = QUAD_STR_WIDTH;
 
     if (given_descrs[1] == NULL) {
         PyArray_Descr *new_descr = PyArray_DescrNewFromType(NPY_STRING);
         if (new_descr == NULL) {
-            return (NPY_CASTING)-1;
+            return quad_resolve_descrs_fail(loop_descrs, 2);
         }
         new_descr->elsize = required_size_bytes;
         loop_descrs[1] = new_descr;
@@ -731,10 +739,13 @@ stringdtype_to_quad_resolve_descriptors(PyObject *NPY_UNUSED(self), PyArray_DTyp
                                         PyArray_Descr *given_descrs[2], PyArray_Descr *loop_descrs[2],
                                         npy_intp *view_offset)
 {
+    loop_descrs[0] = NULL;
+    loop_descrs[1] = NULL;
+
     if (given_descrs[1] == NULL) {
         loop_descrs[1] = (PyArray_Descr *)new_quaddtype_instance(BACKEND_SLEEF);
         if (loop_descrs[1] == nullptr) {
-            return (NPY_CASTING)-1;
+            return quad_resolve_descrs_fail(loop_descrs, 2);
         }
     }
     else {
@@ -813,12 +824,15 @@ quad_to_stringdtype_resolve_descriptors(PyObject *NPY_UNUSED(self), PyArray_DTyp
                                         PyArray_Descr *given_descrs[2], PyArray_Descr *loop_descrs[2],
                                         npy_intp *view_offset)
 {
+    loop_descrs[0] = NULL;
+    loop_descrs[1] = NULL;
+
     if (given_descrs[1] == NULL) {
         // Default StringDType() already has coerce=True
         loop_descrs[1] = (PyArray_Descr *)PyObject_CallNoArgs(
                 (PyObject *)&PyArray_StringDType);
         if (loop_descrs[1] == NULL) {
-            return (NPY_CASTING)-1;
+            return quad_resolve_descrs_fail(loop_descrs, 2);
         }
     }
     else {
@@ -1164,11 +1178,14 @@ numpy_to_quad_resolve_descriptors(PyObject *NPY_UNUSED(self), PyArray_DTypeMeta 
                                   PyArray_Descr *given_descrs[2], PyArray_Descr *loop_descrs[2],
                                   npy_intp *view_offset)
 {
+    loop_descrs[0] = NULL;
+    loop_descrs[1] = NULL;
+
     // todo: here it is converting this to SLEEF, losing data and getting 0
     if (given_descrs[1] == NULL) {
         loop_descrs[1] = (PyArray_Descr *)new_quaddtype_instance(BACKEND_SLEEF);
         if (loop_descrs[1] == nullptr) {
-            return (NPY_CASTING)-1;
+            return quad_resolve_descrs_fail(loop_descrs, 2);
         }
     }
     else {
@@ -1177,6 +1194,9 @@ numpy_to_quad_resolve_descriptors(PyObject *NPY_UNUSED(self), PyArray_DTypeMeta 
     }
 
     loop_descrs[0] = PyArray_GetDefaultDescr(dtypes[0]);
+    if (loop_descrs[0] == nullptr) {
+        return quad_resolve_descrs_fail(loop_descrs, 2);
+    }
     // since QUAD precision is the highest precision, we can always cast to it
     return static_cast<NPY_CASTING>(NPY_SAFE_CASTING | NPY_SAME_VALUE_CASTING_FLAG);
 }
@@ -1485,10 +1505,16 @@ quad_to_numpy_resolve_descriptors(PyObject *NPY_UNUSED(self), PyArray_DTypeMeta 
                                   PyArray_Descr *given_descrs[2], PyArray_Descr *loop_descrs[2],
                                   npy_intp *view_offset)
 {
+    loop_descrs[0] = NULL;
+    loop_descrs[1] = NULL;
+
     Py_INCREF(given_descrs[0]);
     loop_descrs[0] = given_descrs[0];
 
     loop_descrs[1] = PyArray_GetDefaultDescr(dtypes[1]);
+    if (loop_descrs[1] == nullptr) {
+        return quad_resolve_descrs_fail(loop_descrs, 2);
+    }
     // For floating-point types: same_kind casting (precision loss but same kind)
     if constexpr (is_float_type<T>::value) {
         return static_cast<NPY_CASTING>(NPY_SAME_KIND_CASTING | NPY_SAME_VALUE_CASTING_FLAG);

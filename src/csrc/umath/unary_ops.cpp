@@ -150,13 +150,16 @@ quad_unary_logical_op_resolve_descriptors(PyObject *self, PyArray_DTypeMeta *con
                                          PyArray_Descr *const given_descrs[], PyArray_Descr *loop_descrs[],
                                          npy_intp *NPY_UNUSED(view_offset))
 {
+    loop_descrs[0] = NULL;
+    loop_descrs[1] = NULL;
+
     Py_INCREF(given_descrs[0]);
     loop_descrs[0] = given_descrs[0];
 
     // Output is always bool
     loop_descrs[1] = PyArray_DescrFromType(NPY_BOOL);
     if (!loop_descrs[1]) {
-        return (NPY_CASTING)-1;
+        return quad_resolve_descrs_fail(loop_descrs, 2);
     }
 
     return NPY_NO_CASTING;
@@ -419,6 +422,10 @@ quad_frexp_resolve_descriptors(PyObject *self, PyArray_DTypeMeta *const dtypes[]
                                PyArray_Descr *const given_descrs[], PyArray_Descr *loop_descrs[],
                                npy_intp *NPY_UNUSED(view_offset))
 {
+    for (int i = 0; i < 3; i++) {
+        loop_descrs[i] = NULL;
+    }
+
     // Input descriptor
     Py_INCREF(given_descrs[0]);
     loop_descrs[0] = given_descrs[0];
@@ -436,6 +443,9 @@ quad_frexp_resolve_descriptors(PyObject *self, PyArray_DTypeMeta *const dtypes[]
     // Output 2: exponent (int32)
     if (given_descrs[2] == NULL) {
         loop_descrs[2] = PyArray_DescrFromType(NPY_INT32);
+        if (!loop_descrs[2]) {
+            return quad_resolve_descrs_fail(loop_descrs, 3);
+        }
     }
     else {
         Py_INCREF(given_descrs[2]);

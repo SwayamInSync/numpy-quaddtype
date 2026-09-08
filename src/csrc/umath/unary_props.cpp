@@ -25,10 +25,16 @@ quad_unary_prop_resolve_descriptors(PyObject *self, PyArray_DTypeMeta *const dty
                                     PyArray_Descr *const given_descrs[], PyArray_Descr *loop_descrs[],
                                     npy_intp *NPY_UNUSED(view_offset))
 {
+    loop_descrs[0] = NULL;
+    loop_descrs[1] = NULL;
+
     Py_INCREF(given_descrs[0]);
     loop_descrs[0] = given_descrs[0];
 
     loop_descrs[1] = PyArray_DescrFromType(NPY_BOOL);
+    if (!loop_descrs[1]) {
+        return quad_resolve_descrs_fail(loop_descrs, 2);
+    }
 
     return NPY_NO_CASTING;
 }

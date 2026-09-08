@@ -29,6 +29,10 @@ quad_comparison_op_resolve_descriptors(PyObject *self, PyArray_DTypeMeta *const 
                                        PyArray_Descr *loop_descrs[],
                                        npy_intp *NPY_UNUSED(view_offset))
 {
+    for (int i = 0; i < 3; i++) {
+        loop_descrs[i] = NULL;
+    }
+
     QuadPrecDTypeObject *descr_in1 = (QuadPrecDTypeObject *)given_descrs[0];
     QuadPrecDTypeObject *descr_in2 = (QuadPrecDTypeObject *)given_descrs[1];
     QuadBackendType target_backend;
@@ -48,7 +52,7 @@ quad_comparison_op_resolve_descriptors(PyObject *self, PyArray_DTypeMeta *const 
         if (((QuadPrecDTypeObject *)given_descrs[i])->backend != target_backend) {
             loop_descrs[i] = (PyArray_Descr *)new_quaddtype_instance(target_backend);
             if (!loop_descrs[i]) {
-                return (NPY_CASTING)-1;
+                return quad_resolve_descrs_fail(loop_descrs, 3);
             }
         }
         else {
@@ -60,7 +64,7 @@ quad_comparison_op_resolve_descriptors(PyObject *self, PyArray_DTypeMeta *const 
     // Set up output descriptor
     loop_descrs[2] = PyArray_DescrFromType(NPY_BOOL);
     if (!loop_descrs[2]) {
-        return (NPY_CASTING)-1;
+        return quad_resolve_descrs_fail(loop_descrs, 3);
     }
     return casting;
 }
@@ -152,6 +156,10 @@ quad_comparison_reduce_resolve_descriptors(PyObject *self, PyArray_DTypeMeta *co
                                         PyArray_Descr *loop_descrs[],
                                         npy_intp *NPY_UNUSED(view_offset))
 {
+    for (int i = 0; i < 3; i++) {
+        loop_descrs[i] = NULL;
+    }
+
     NPY_CASTING casting = NPY_SAFE_CASTING;
     
     for (int i = 0; i < 2; i++) {
@@ -162,7 +170,7 @@ quad_comparison_reduce_resolve_descriptors(PyObject *self, PyArray_DTypeMeta *co
     // Set up output descriptor
     loop_descrs[2] = PyArray_DescrFromType(NPY_BOOL);
     if (!loop_descrs[2]) {
-        return (NPY_CASTING)-1;
+        return quad_resolve_descrs_fail(loop_descrs, 3);
     }
     return casting;
 }
