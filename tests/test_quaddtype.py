@@ -3697,6 +3697,57 @@ def test_array_conjugate_method():
     np.testing.assert_array_equal(result.astype(float), [1.5, -2.5, 0.0])
 
 
+@pytest.mark.parametrize("backend", ["sleef", "longdouble"])
+def test_object_conjugate_preserves_values_and_backend(backend):
+    dtype = QuadPrecDType(backend=backend)
+    objects = np.array([1.5, 2.5], dtype=dtype).astype(object)
+
+    result = np.conjugate(objects)
+
+    np.testing.assert_array_equal(result, objects, strict=True)
+    for scalar in result:
+        assert scalar.dtype == dtype
+
+
+@pytest.mark.parametrize("backend", ["sleef", "longdouble"])
+@pytest.mark.parametrize("method", ["conj", "conjugate"])
+@pytest.mark.parametrize("value", [1.5, -0.0, np.inf, np.nan])
+@pytest.mark.parametrize("args", [(), (None,)])
+def test_scalar_conjugate_preserves_values_and_backend(backend, method, value, args):
+    scalar = QuadPrecision(value, backend=backend)
+
+    result = getattr(scalar, method)(*args)
+
+    assert result.dtype == scalar.dtype
+    np.testing.assert_array_equal(float(result), value)
+    assert np.signbit(float(result)) == np.signbit(value)
+
+
+@pytest.mark.parametrize("backend", ["sleef", "longdouble"])
+@pytest.mark.parametrize("method", ["conj", "conjugate"])
+@pytest.mark.parametrize("dtype", [np.float32, np.float64, object, QuadPrecDType])
+def test_scalar_conjugate_with_out(backend, method, dtype):
+    scalar = QuadPrecision(1.5, backend=backend)
+    out = np.empty((), dtype=scalar.dtype if dtype is QuadPrecDType else dtype)
+    reference_out = np.empty((), dtype=np.float64 if dtype is QuadPrecDType else dtype)
+
+    result = getattr(scalar, method)(out)
+    expected = getattr(np.float64(1.5), method)(reference_out)
+
+    np.testing.assert_array_equal(float(result), float(expected))
+    np.testing.assert_array_equal(out.astype(np.float64), reference_out.astype(np.float64))
+    if dtype is object or dtype is QuadPrecDType:
+        assert result.dtype == scalar.dtype
+
+
+@pytest.mark.parametrize("backend", ["sleef", "longdouble"])
+@pytest.mark.parametrize("method", ["conj", "conjugate"])
+@pytest.mark.parametrize("args", [(1,), (None, None), (np.empty((), dtype=np.int64),)])
+def test_scalar_conjugate_rejects_invalid_out(backend, method, args):
+    for scalar in [QuadPrecision(1.5, backend=backend), np.float64(1.5)]:
+        with pytest.raises(TypeError):
+            getattr(scalar, method)(*args)
+
 @pytest.mark.parametrize("x1,x2,expected", [
     # Basic Pythagorean triples
     (3.0, 4.0, 5.0),

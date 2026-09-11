@@ -429,6 +429,34 @@ QuadPrecision_get_imag(QuadPrecisionObject *self, void *closure)
     return (PyObject *)QuadPrecision_raw_new(self->backend);
 }
 
+static PyObject *
+QuadPrecision_conjugate(QuadPrecisionObject *self, PyObject *args)
+{
+    PyArrayObject *out = NULL;
+    if (!PyArg_ParseTuple(args, "|O&:conjugate", PyArray_OutputConverter, &out)) {
+        return NULL;
+    }
+    if (out == NULL) {
+        return Py_NewRef(self);
+    }
+
+    PyArray_Descr *dtype = (PyArray_Descr *)new_quaddtype_instance(self->backend);
+    if (dtype == NULL) {
+        return NULL;
+    }
+    PyArrayObject *array = (PyArrayObject *)PyArray_SimpleNewFromDescr(0, NULL, dtype);
+    if (array == NULL) {
+        return NULL;
+    }
+    quad_value_store(PyArray_BYTES(array), &self->value, self->backend);
+    PyObject *result = PyArray_Conjugate(array, out);
+    Py_DECREF(array);
+    if (result == NULL || !PyArray_Check(result)) {
+        return result;
+    }
+    return PyArray_Return((PyArrayObject *)result);
+}
+
 // Method implementations for float compatibility
 static PyObject *
 QuadPrecision_is_integer(QuadPrecisionObject *self, PyObject *Py_UNUSED(ignored))
@@ -774,6 +802,10 @@ QuadPrecision_from_raw_bytes(PyObject *Py_UNUSED(module), PyObject *args)
 }
 
 static PyMethodDef QuadPrecision_methods[] = {
+    {"conj", (PyCFunction)QuadPrecision_conjugate, METH_VARARGS,
+     "Return the complex conjugate."},
+    {"conjugate", (PyCFunction)QuadPrecision_conjugate, METH_VARARGS,
+     "Return the complex conjugate."},
     {"is_integer", (PyCFunction)QuadPrecision_is_integer, METH_NOARGS,
      "Return True if the value is an integer."},
     {"as_integer_ratio", (PyCFunction)QuadPrecision_as_integer_ratio, METH_NOARGS,
