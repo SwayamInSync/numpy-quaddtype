@@ -518,48 +518,10 @@ init_matmul_ops(PyObject *numpy)
         return -1;
     }
 
-    PyObject *promoter_capsule =
-            PyCapsule_New((void *)&quad_ufunc_promoter, "numpy._ufunc_promoter", NULL);
-    if (promoter_capsule == NULL) {
+    if (quad_add_promoters(ufunc) < 0) {
         Py_DECREF(ufunc);
         return -1;
     }
-
-    // Register promoter for (QuadPrecDType, Any, Any)
-    PyObject *DTypes = PyTuple_Pack(3, &QuadPrecDType, &PyArrayDescr_Type, &PyArrayDescr_Type);
-    if (DTypes == NULL) {
-        Py_DECREF(promoter_capsule);
-        Py_DECREF(ufunc);
-        return -1;
-    }
-
-    if (PyUFunc_AddPromoter(ufunc, DTypes, promoter_capsule) < 0) {
-        Py_DECREF(promoter_capsule);
-        Py_DECREF(DTypes);
-        Py_DECREF(ufunc);
-        return -1;
-    }
-    Py_DECREF(DTypes);
-
-    // Register promoter for (Any, QuadPrecDType, Any)
-    DTypes = PyTuple_Pack(3, &PyArrayDescr_Type, &QuadPrecDType, &PyArrayDescr_Type);
-    if (DTypes == NULL) {
-        Py_DECREF(promoter_capsule);
-        Py_DECREF(ufunc);
-        return -1;
-    }
-
-    if (PyUFunc_AddPromoter(ufunc, DTypes, promoter_capsule) < 0) {
-        Py_DECREF(promoter_capsule);
-        Py_DECREF(DTypes);
-        Py_DECREF(ufunc);
-        return -1;
-    }
-    Py_DECREF(DTypes);
-
-    Py_DECREF(promoter_capsule);
-
     Py_DECREF(ufunc);
-
     return 0;
 }

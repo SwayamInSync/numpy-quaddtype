@@ -269,21 +269,6 @@ comparison_object_output_is_bool(PyUFuncObject *ufunc)
            strcmp(ufunc->name, "logical_xor") != 0;
 }
 
-// Registers `promoter` for a single (in1, in2, out) DType pattern.
-static int
-add_comparison_promoter(PyObject *ufunc, PyObject *promoter, PyArray_DTypeMeta *in1,
-                        PyArray_DTypeMeta *in2, PyArray_DTypeMeta *out)
-{
-    PyObject *DTypes = PyTuple_Pack(3, (PyObject *)in1, (PyObject *)in2, (PyObject *)out);
-    if (DTypes == NULL) {
-        return -1;
-    }
-
-    int res = PyUFunc_AddPromoter(ufunc, DTypes, promoter);
-    Py_DECREF(DTypes);
-    return res;
-}
-
 NPY_NO_EXPORT int
 comparison_ufunc_promoter(PyObject *ufunc_obj, PyArray_DTypeMeta *const op_dtypes[],
                           PyArray_DTypeMeta *const signature[], PyArray_DTypeMeta *new_op_dtypes[])
@@ -401,8 +386,7 @@ create_quad_comparison_ufunc(PyObject *numpy, const char *ufunc_name)
     };
 
     for (size_t i = 0; i < sizeof(promoter_patterns) / sizeof(promoter_patterns[0]); i++) {
-        if (add_comparison_promoter(ufunc, promoter_capsule, promoter_patterns[i][0],
-                                    promoter_patterns[i][1], promoter_patterns[i][2]) < 0) {
+        if (quad_add_promoter(ufunc, promoter_capsule, promoter_patterns[i]) < 0) {
             Py_DECREF(promoter_capsule);
             Py_DECREF(ufunc);
             return -1;
