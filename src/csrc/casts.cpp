@@ -15,6 +15,7 @@ extern "C" {
 }
 #include <cstring>
 #include <cstdlib>
+#include <memory>
 #include <new>
 #include <type_traits>
 #include "sleef.h"
@@ -1569,16 +1570,31 @@ quad_to_numpy_strided_loop(PyArrayMethod_Context *context, char *const data[],
 static PyArrayMethod_Spec *specs[NUM_CASTS + 1];  // +1 for NULL terminator
 static size_t spec_count = 0;
 
-void
-add_spec(PyArrayMethod_Spec *spec)
+static void
+add_spec(const char *name, NPY_CASTING casting, NPY_ARRAYMETHOD_FLAGS flags,
+         PyArray_DTypeMeta *from, PyArray_DTypeMeta *to, void *resolve_descriptors,
+         void *strided_loop, void *unaligned_strided_loop)
 {
+    std::unique_ptr<PyArray_DTypeMeta *[]> dtypes(new PyArray_DTypeMeta *[2]{from, to});
+    std::unique_ptr<PyType_Slot[]> slots(new PyType_Slot[4]{
+            {NPY_METH_resolve_descriptors, resolve_descriptors},
+            {NPY_METH_strided_loop, strided_loop},
+            {NPY_METH_unaligned_strided_loop, unaligned_strided_loop},
+            {0, nullptr}});
+    std::unique_ptr<PyArrayMethod_Spec> spec(new PyArrayMethod_Spec{
+            .name = name,
+            .nin = 1,
+            .nout = 1,
+            .casting = casting,
+            .flags = flags,
+            .dtypes = dtypes.get(),
+            .slots = slots.get(),
+    });
+
     if (spec_count < NUM_CASTS) {
-        specs[spec_count++] = spec;
-    }
-    else {
-        delete[] spec->dtypes;
-        delete[] spec->slots;
-        delete spec;
+        spec->dtypes = dtypes.release();
+        spec->slots = slots.release();
+        specs[spec_count++] = spec.release();
     }
 }
 
@@ -1587,91 +1603,34 @@ template <typename T>
 void
 add_cast_from(PyArray_DTypeMeta *to)
 {
-    PyArray_DTypeMeta **dtypes = new PyArray_DTypeMeta *[2]{&QuadPrecDType, to};
-
-    PyType_Slot *slots = new PyType_Slot[]{
-            {NPY_METH_resolve_descriptors, (void *)&quad_to_numpy_resolve_descriptors<T>},
-            {NPY_METH_strided_loop, (void *)&quad_to_numpy_strided_loop<true, T>},
-            {NPY_METH_unaligned_strided_loop, (void *)&quad_to_numpy_strided_loop<false, T>},
-            {0, nullptr}};
-
-    PyArrayMethod_Spec *spec = new PyArrayMethod_Spec{
-            .name = "cast_QuadPrec_to_NumPy",
-            .nin = 1,
-            .nout = 1,
-            .casting = NPY_UNSAFE_CASTING,
-            .flags = NPY_METH_SUPPORTS_UNALIGNED,
-            .dtypes = dtypes,
-            .slots = slots,
-    };
-    add_spec(spec);
+    add_spec("cast_QuadPrec_to_NumPy", NPY_UNSAFE_CASTING, NPY_METH_SUPPORTS_UNALIGNED,
+             &QuadPrecDType, to, (void *)&quad_to_numpy_resolve_descriptors<T>,
+             (void *)&quad_to_numpy_strided_loop<true, T>,
+             (void *)&quad_to_numpy_strided_loop<false, T>);
 }
 
 template <typename T>
 void
 add_cast_to(PyArray_DTypeMeta *from)
 {
-    PyArray_DTypeMeta **dtypes = new PyArray_DTypeMeta *[2]{from, &QuadPrecDType};
-
-    PyType_Slot *slots = new PyType_Slot[]{
-            {NPY_METH_resolve_descriptors, (void *)&numpy_to_quad_resolve_descriptors<T>},
-            {NPY_METH_strided_loop, (void *)&numpy_to_quad_strided_loop<true, T>},
-            {NPY_METH_unaligned_strided_loop, (void *)&numpy_to_quad_strided_loop<false, T>},
-            {0, nullptr}};
-
-    PyArrayMethod_Spec *spec = new PyArrayMethod_Spec{
-            .name = "cast_NumPy_to_QuadPrec",
-            .nin = 1,
-            .nout = 1,
-            .casting = NPY_SAFE_CASTING,
-            .flags = NPY_METH_SUPPORTS_UNALIGNED,
-            .dtypes = dtypes,
-            .slots = slots,
-    };
-
-    add_spec(spec);
+    add_spec("cast_NumPy_to_QuadPrec", NPY_SAFE_CASTING, NPY_METH_SUPPORTS_UNALIGNED, from,
+             &QuadPrecDType, (void *)&numpy_to_quad_resolve_descriptors<T>,
+             (void *)&numpy_to_quad_strided_loop<true, T>,
+             (void *)&numpy_to_quad_strided_loop<false, T>);
 }
 
 PyArrayMethod_Spec **
 init_casts_internal(void)
 {
-    PyArray_DTypeMeta **quad2quad_dtypes = new PyArray_DTypeMeta *[2]{nullptr, nullptr};
-    PyType_Slot *quad2quad_slots = new PyType_Slot[4]{
-            {NPY_METH_resolve_descriptors, (void *)&quad_to_quad_resolve_descriptors},
-            {NPY_METH_strided_loop, (void *)&quad_to_quad_strided_loop<true>},
-            {NPY_METH_unaligned_strided_loop, (void *)&quad_to_quad_strided_loop<false>},
-            {0, nullptr}};
+    add_spec("cast_QuadPrec_to_QuadPrec",
+             NPY_UNSAFE_CASTING,  // since SLEEF -> ld might lose precision
+             NPY_METH_SUPPORTS_UNALIGNED, nullptr, nullptr,
+             (void *)&quad_to_quad_resolve_descriptors, (void *)&quad_to_quad_strided_loop<true>,
+             (void *)&quad_to_quad_strided_loop<false>);
 
-    PyArrayMethod_Spec *quad2quad_spec = new PyArrayMethod_Spec{
-            .name = "cast_QuadPrec_to_QuadPrec",
-            .nin = 1,
-            .nout = 1,
-            .casting = NPY_UNSAFE_CASTING,  // since SLEEF -> ld might lose precision
-            .flags = NPY_METH_SUPPORTS_UNALIGNED,
-            .dtypes = quad2quad_dtypes,
-            .slots = quad2quad_slots,
-    };
-
-    add_spec(quad2quad_spec);
-
-    PyArray_DTypeMeta **void_dtypes =
-            new PyArray_DTypeMeta *[2]{&PyArray_VoidDType, &QuadPrecDType};
-    PyType_Slot *void_slots = new PyType_Slot[4]{
-            {NPY_METH_resolve_descriptors, (void *)&void_to_quad_resolve_descriptors},
-            {NPY_METH_strided_loop, (void *)&void_to_quad_strided_loop},
-            {NPY_METH_unaligned_strided_loop, (void *)&void_to_quad_strided_loop},
-            {0, nullptr}};
-
-    PyArrayMethod_Spec *void_spec = new PyArrayMethod_Spec{
-            .name = "cast_Void_to_QuadPrec_ERROR",
-            .nin = 1,
-            .nout = 1,
-            .casting = NPY_UNSAFE_CASTING,
-            .flags = NPY_METH_SUPPORTS_UNALIGNED,
-            .dtypes = void_dtypes,
-            .slots = void_slots,
-    };
-    add_spec(void_spec);
+    add_spec("cast_Void_to_QuadPrec_ERROR", NPY_UNSAFE_CASTING, NPY_METH_SUPPORTS_UNALIGNED,
+             &PyArray_VoidDType, &QuadPrecDType, (void *)&void_to_quad_resolve_descriptors,
+             (void *)&void_to_quad_strided_loop, (void *)&void_to_quad_strided_loop);
 
     add_cast_to<spec_npy_bool>(&PyArray_BoolDType);
     add_cast_to<npy_byte>(&PyArray_ByteDType);
@@ -1705,119 +1664,35 @@ init_casts_internal(void)
     add_cast_from<double>(&PyArray_DoubleDType);
     add_cast_from<long double>(&PyArray_LongDoubleDType);
 
-    // Unicode/String to QuadPrecision cast
-    PyArray_DTypeMeta **unicode_to_quad_dtypes = new PyArray_DTypeMeta *[2]{&PyArray_UnicodeDType, &QuadPrecDType};
-    PyType_Slot *unicode_to_quad_slots = new PyType_Slot[4]{
-            {NPY_METH_resolve_descriptors, (void *)&unicode_to_quad_resolve_descriptors},
-            {NPY_METH_strided_loop, (void *)&unicode_to_quad_strided_loop<true>},
-            {NPY_METH_unaligned_strided_loop, (void *)&unicode_to_quad_strided_loop<false>},
-            {0, nullptr}};
+    const NPY_ARRAYMETHOD_FLAGS pyapi_flags =
+            static_cast<NPY_ARRAYMETHOD_FLAGS>(NPY_METH_SUPPORTS_UNALIGNED | NPY_METH_REQUIRES_PYAPI);
 
-    PyArrayMethod_Spec *unicode_to_quad_spec = new PyArrayMethod_Spec{
-            .name = "cast_Unicode_to_QuadPrec",
-            .nin = 1,
-            .nout = 1,
-            .casting = NPY_UNSAFE_CASTING,
-            .flags = static_cast<NPY_ARRAYMETHOD_FLAGS>(NPY_METH_SUPPORTS_UNALIGNED | NPY_METH_REQUIRES_PYAPI),
-            .dtypes = unicode_to_quad_dtypes,
-            .slots = unicode_to_quad_slots,
-    };
-    add_spec(unicode_to_quad_spec);
+    add_spec("cast_Unicode_to_QuadPrec", NPY_UNSAFE_CASTING, pyapi_flags, &PyArray_UnicodeDType,
+             &QuadPrecDType, (void *)&unicode_to_quad_resolve_descriptors,
+             (void *)&unicode_to_quad_strided_loop<true>,
+             (void *)&unicode_to_quad_strided_loop<false>);
 
-    // QuadPrecision to Unicode
-    PyArray_DTypeMeta **quad_to_unicode_dtypes = new PyArray_DTypeMeta *[2]{&QuadPrecDType, &PyArray_UnicodeDType};
-    PyType_Slot *quad_to_unicode_slots = new PyType_Slot[4]{
-            {NPY_METH_resolve_descriptors, (void *)&quad_to_unicode_resolve_descriptors},
-            {NPY_METH_strided_loop, (void *)&quad_to_unicode_loop<true>},
-            {NPY_METH_unaligned_strided_loop, (void *)&quad_to_unicode_loop<false>},
-            {0, nullptr}};
+    add_spec("cast_QuadPrec_to_Unicode", NPY_UNSAFE_CASTING, pyapi_flags, &QuadPrecDType,
+             &PyArray_UnicodeDType, (void *)&quad_to_unicode_resolve_descriptors,
+             (void *)&quad_to_unicode_loop<true>, (void *)&quad_to_unicode_loop<false>);
 
-    PyArrayMethod_Spec *quad_to_unicode_spec = new PyArrayMethod_Spec{
-            .name = "cast_QuadPrec_to_Unicode",
-            .nin = 1,
-            .nout = 1,
-            .casting = NPY_UNSAFE_CASTING,
-            .flags = static_cast<NPY_ARRAYMETHOD_FLAGS>(NPY_METH_SUPPORTS_UNALIGNED | NPY_METH_REQUIRES_PYAPI),
-            .dtypes = quad_to_unicode_dtypes,
-            .slots = quad_to_unicode_slots,
-    };
-    add_spec(quad_to_unicode_spec);
+    add_spec("cast_Bytes_to_QuadPrec", NPY_UNSAFE_CASTING, pyapi_flags, &PyArray_BytesDType,
+             &QuadPrecDType, (void *)&bytes_to_quad_resolve_descriptors,
+             (void *)&bytes_to_quad_strided_loop<true>, (void *)&bytes_to_quad_strided_loop<false>);
 
-    // Bytes to QuadPrecision cast
-    PyArray_DTypeMeta **bytes_to_quad_dtypes = new PyArray_DTypeMeta *[2]{&PyArray_BytesDType, &QuadPrecDType};
-    PyType_Slot *bytes_to_quad_slots = new PyType_Slot[4]{
-            {NPY_METH_resolve_descriptors, (void *)&bytes_to_quad_resolve_descriptors},
-            {NPY_METH_strided_loop, (void *)&bytes_to_quad_strided_loop<true>},
-            {NPY_METH_unaligned_strided_loop, (void *)&bytes_to_quad_strided_loop<false>},
-            {0, nullptr}};
+    add_spec("cast_QuadPrec_to_Bytes", NPY_UNSAFE_CASTING, pyapi_flags, &QuadPrecDType,
+             &PyArray_BytesDType, (void *)&quad_to_bytes_resolve_descriptors,
+             (void *)&quad_to_bytes_loop<true>, (void *)&quad_to_bytes_loop<false>);
 
-    PyArrayMethod_Spec *bytes_to_quad_spec = new PyArrayMethod_Spec{
-            .name = "cast_Bytes_to_QuadPrec",
-            .nin = 1,
-            .nout = 1,
-            .casting = NPY_UNSAFE_CASTING,
-            .flags = static_cast<NPY_ARRAYMETHOD_FLAGS>(NPY_METH_SUPPORTS_UNALIGNED | NPY_METH_REQUIRES_PYAPI),
-            .dtypes = bytes_to_quad_dtypes,
-            .slots = bytes_to_quad_slots,
-    };
-    add_spec(bytes_to_quad_spec);
+    add_spec("cast_StringDType_to_QuadPrec", NPY_UNSAFE_CASTING, pyapi_flags,
+             &PyArray_StringDType, &QuadPrecDType, (void *)&stringdtype_to_quad_resolve_descriptors,
+             (void *)&stringdtype_to_quad_strided_loop<true>,
+             (void *)&stringdtype_to_quad_strided_loop<false>);
 
-    // QuadPrecision to Bytes
-    PyArray_DTypeMeta **quad_to_bytes_dtypes = new PyArray_DTypeMeta *[2]{&QuadPrecDType, &PyArray_BytesDType};
-    PyType_Slot *quad_to_bytes_slots = new PyType_Slot[4]{
-            {NPY_METH_resolve_descriptors, (void *)&quad_to_bytes_resolve_descriptors},
-            {NPY_METH_strided_loop, (void *)&quad_to_bytes_loop<true>},
-            {NPY_METH_unaligned_strided_loop, (void *)&quad_to_bytes_loop<false>},
-            {0, nullptr}};
-
-    PyArrayMethod_Spec *quad_to_bytes_spec = new PyArrayMethod_Spec{
-            .name = "cast_QuadPrec_to_Bytes",
-            .nin = 1,
-            .nout = 1,
-            .casting = NPY_UNSAFE_CASTING,
-            .flags = static_cast<NPY_ARRAYMETHOD_FLAGS>(NPY_METH_SUPPORTS_UNALIGNED | NPY_METH_REQUIRES_PYAPI),
-            .dtypes = quad_to_bytes_dtypes,
-            .slots = quad_to_bytes_slots,
-    };
-    add_spec(quad_to_bytes_spec);
-
-    // StringDType to QuadPrecision cast
-    PyArray_DTypeMeta **stringdtype_to_quad_dtypes = new PyArray_DTypeMeta *[2]{&PyArray_StringDType, &QuadPrecDType};
-    PyType_Slot *stringdtype_to_quad_slots = new PyType_Slot[4]{
-            {NPY_METH_resolve_descriptors, (void *)&stringdtype_to_quad_resolve_descriptors},
-            {NPY_METH_strided_loop, (void *)&stringdtype_to_quad_strided_loop<true>},
-            {NPY_METH_unaligned_strided_loop, (void *)&stringdtype_to_quad_strided_loop<false>},
-            {0, nullptr}};
-
-    PyArrayMethod_Spec *stringdtype_to_quad_spec = new PyArrayMethod_Spec{
-            .name = "cast_StringDType_to_QuadPrec",
-            .nin = 1,
-            .nout = 1,
-            .casting = NPY_UNSAFE_CASTING,
-            .flags = static_cast<NPY_ARRAYMETHOD_FLAGS>(NPY_METH_SUPPORTS_UNALIGNED | NPY_METH_REQUIRES_PYAPI),
-            .dtypes = stringdtype_to_quad_dtypes,
-            .slots = stringdtype_to_quad_slots,
-    };
-    add_spec(stringdtype_to_quad_spec);
-
-    // QuadPrecision to StringDType cast
-    PyArray_DTypeMeta **quad_to_stringdtype_dtypes = new PyArray_DTypeMeta *[2]{&QuadPrecDType, &PyArray_StringDType};
-    PyType_Slot *quad_to_stringdtype_slots = new PyType_Slot[4]{
-            {NPY_METH_resolve_descriptors, (void *)&quad_to_stringdtype_resolve_descriptors},
-            {NPY_METH_strided_loop, (void *)&quad_to_stringdtype_strided_loop<true>},
-            {NPY_METH_unaligned_strided_loop, (void *)&quad_to_stringdtype_strided_loop<false>},
-            {0, nullptr}};
-
-    PyArrayMethod_Spec *quad_to_stringdtype_spec = new PyArrayMethod_Spec{
-            .name = "cast_QuadPrec_to_StringDType",
-            .nin = 1,
-            .nout = 1,
-            .casting = NPY_SAFE_CASTING,
-            .flags = static_cast<NPY_ARRAYMETHOD_FLAGS>(NPY_METH_SUPPORTS_UNALIGNED | NPY_METH_REQUIRES_PYAPI),
-            .dtypes = quad_to_stringdtype_dtypes,
-            .slots = quad_to_stringdtype_slots,
-    };
-    add_spec(quad_to_stringdtype_spec);
+    add_spec("cast_QuadPrec_to_StringDType", NPY_SAFE_CASTING, pyapi_flags, &QuadPrecDType,
+             &PyArray_StringDType, (void *)&quad_to_stringdtype_resolve_descriptors,
+             (void *)&quad_to_stringdtype_strided_loop<true>,
+             (void *)&quad_to_stringdtype_strided_loop<false>);
 
     specs[spec_count] = nullptr;
     return specs;
@@ -1830,6 +1705,7 @@ init_casts(void)
         return init_casts_internal();
     }
     catch (const std::bad_alloc &) {
+        free_casts();
         PyErr_NoMemory();
         return nullptr;
     }
