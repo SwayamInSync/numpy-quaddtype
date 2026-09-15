@@ -30,7 +30,7 @@ A cross-platform Quad (128-bit) float Data-Type for NumPy.
 ## Installation
 
 ```bash
-pip install "numpy>=2.4"
+pip install "numpy>=2.5.3"
 pip install numpy-quaddtype
 ```
 
@@ -70,7 +70,7 @@ np.array([1,2,3], dtype=QuadPrecDType("longdouble"))
 
 ### Linux/Unix/macOS
 
-**Prerequisites:** gcc/clang, CMake (≥3.15), Python 3.11+, Git, NumPy ≥ 2.4
+**Prerequisites:** gcc/clang, CMake (≥3.15), Python 3.12+, Git, NumPy ≥ 2.5.3
 
 ```bash
 # setup the virtual env
@@ -78,7 +78,7 @@ python3 -m venv temp
 source temp/bin/activate
 
 # Install build and test dependencies
-pip install pytest meson meson-python "numpy>=2.4"
+pip install pytest meson meson-python "numpy>=2.5.3"
 
 # To build without QBLAS (default for MSVC)
 # export CFLAGS="-DDISABLE_QUADBLAS"
@@ -92,7 +92,7 @@ python -m pytest tests
 
 ### Windows
 
-**Prerequisites:** Visual Studio 2017+ (with MSVC), CMake (≥3.15), Python 3.11+, Git
+**Prerequisites:** Visual Studio 2017+ (with MSVC), CMake (≥3.15), Python 3.12+, Git
 
 1. **Setup Development Environment**
 

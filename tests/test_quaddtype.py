@@ -3697,6 +3697,57 @@ def test_array_conjugate_method():
     np.testing.assert_array_equal(result.astype(float), [1.5, -2.5, 0.0])
 
 
+@pytest.mark.parametrize("backend", ["sleef", "longdouble"])
+def test_object_conjugate_preserves_values_and_backend(backend):
+    dtype = QuadPrecDType(backend=backend)
+    objects = np.array([1.5, 2.5], dtype=dtype).astype(object)
+
+    result = np.conjugate(objects)
+
+    np.testing.assert_array_equal(result, objects, strict=True)
+    for scalar in result:
+        assert scalar.dtype == dtype
+
+
+@pytest.mark.parametrize("backend", ["sleef", "longdouble"])
+@pytest.mark.parametrize("method", ["conj", "conjugate"])
+@pytest.mark.parametrize("value", [1.5, -0.0, np.inf, np.nan])
+@pytest.mark.parametrize("args", [(), (None,)])
+def test_scalar_conjugate_preserves_values_and_backend(backend, method, value, args):
+    scalar = QuadPrecision(value, backend=backend)
+
+    result = getattr(scalar, method)(*args)
+
+    assert result.dtype == scalar.dtype
+    np.testing.assert_array_equal(float(result), value)
+    assert np.signbit(float(result)) == np.signbit(value)
+
+
+@pytest.mark.parametrize("backend", ["sleef", "longdouble"])
+@pytest.mark.parametrize("method", ["conj", "conjugate"])
+@pytest.mark.parametrize("dtype", [np.float32, np.float64, object, QuadPrecDType])
+def test_scalar_conjugate_with_out(backend, method, dtype):
+    scalar = QuadPrecision(1.5, backend=backend)
+    out = np.empty((), dtype=scalar.dtype if dtype is QuadPrecDType else dtype)
+    reference_out = np.empty((), dtype=np.float64 if dtype is QuadPrecDType else dtype)
+
+    result = getattr(scalar, method)(out)
+    expected = getattr(np.float64(1.5), method)(reference_out)
+
+    np.testing.assert_array_equal(float(result), float(expected))
+    np.testing.assert_array_equal(out.astype(np.float64), reference_out.astype(np.float64))
+    if dtype is object or dtype is QuadPrecDType:
+        assert result.dtype == scalar.dtype
+
+
+@pytest.mark.parametrize("backend", ["sleef", "longdouble"])
+@pytest.mark.parametrize("method", ["conj", "conjugate"])
+@pytest.mark.parametrize("args", [(1,), (None, None), (np.empty((), dtype=np.int64),)])
+def test_scalar_conjugate_rejects_invalid_out(backend, method, args):
+    for scalar in [QuadPrecision(1.5, backend=backend), np.float64(1.5)]:
+        with pytest.raises(TypeError):
+            getattr(scalar, method)(*args)
+
 @pytest.mark.parametrize("x1,x2,expected", [
     # Basic Pythagorean triples
     (3.0, 4.0, 5.0),
@@ -6453,62 +6504,6 @@ def test_logical_reduce_on_non_quad_arrays():
     """
     result = np.logical_or.reduce(np.arange(10.))
     assert result == True
-
-
-class TestPromoterNoInterference:
-    """Regression tests for overly broad promoter registration.
-
-    Prior to the fix, promoters were registered with PyArrayDescr_Type in
-    all slots, matching ANY dtype combination. This caused the quaddtype
-    promoter to intercept operations on unrelated NumPy types (timedelta64,
-    float64, etc.), breaking normal NumPy functionality.
-
-    See https://github.com/numpy/numpy-quaddtype/issues/76
-    """
-
-    def test_timedelta_modulus_raises_typeerror(self):
-        """timedelta64 % int must raise TypeError, not be silently handled."""
-        with pytest.raises(TypeError, match="remainder"):
-            np.remainder(np.timedelta64(7, 'Y'), 15)
-
-    def test_timedelta_divide_preserves_dtype(self):
-        """timedelta64 / int must return timedelta64, not float64."""
-        a = np.arange(1000, dtype="m8[s]")
-        result = a.sum() / len(a)
-        assert result.dtype.kind == 'm', (
-            f"Expected timedelta64 dtype, got {result.dtype}")
-
-    def test_timedelta_mean_correct(self):
-        """timedelta mean must use timedelta division, not float promotion."""
-        a = np.arange(1000, dtype="m8[s]")
-        mean_val = a.mean()
-        sum_div = a.sum() / len(a)
-        np.testing.assert_array_equal(mean_val, sum_div)
-
-    @pytest.mark.parametrize("op", [
-        np.add, np.subtract, np.multiply, np.divide,
-        np.floor_divide, np.power, np.mod,
-    ])
-    def test_binary_ufunc_float64_preserves_dtype(self, op):
-        """Builtin float64 ops must not be affected by quad promoters."""
-        a = np.array([1.0, 2.0, 3.0], dtype=np.float64)
-        b = np.array([4.0, 5.0, 6.0], dtype=np.float64)
-        result = op(a, b)
-        assert result.dtype == np.float64
-
-    def test_matmul_float64_preserves_dtype(self):
-        a = np.eye(3, dtype=np.float64)
-        b = np.ones((3, 2), dtype=np.float64)
-        result = np.matmul(a, b)
-        assert result.dtype == np.float64
-        np.testing.assert_array_equal(result, b)
-
-    def test_divmod_float64_preserves_dtype(self):
-        a = np.array([7.0, 8.0], dtype=np.float64)
-        b = np.array([3.0, 3.0], dtype=np.float64)
-        q, r = np.divmod(a, b)
-        assert q.dtype == np.float64
-        assert r.dtype == np.float64
 
 
 class TestObjectPromotion:

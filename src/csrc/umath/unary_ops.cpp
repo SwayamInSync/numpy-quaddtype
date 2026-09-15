@@ -19,6 +19,7 @@ extern "C" {
 #include "scalar.h"
 #include "dtype.h"
 #include "ops.hpp"
+#include "umath/promoters.hpp"
 
 static NPY_CASTING
 quad_unary_op_resolve_descriptors(PyObject *self, PyArray_DTypeMeta *const dtypes[],
@@ -136,6 +137,11 @@ create_quad_unary_ufunc(PyObject *numpy, const char *ufunc_name)
     };
 
     if (PyUFunc_AddLoopFromSpec(ufunc, &Spec) < 0) {
+        Py_DECREF(ufunc);
+        return -1;
+    }
+
+    if (quad_add_promoters(ufunc) < 0) {
         Py_DECREF(ufunc);
         return -1;
     }
@@ -405,6 +411,11 @@ create_quad_unary_2out_ufunc(PyObject *numpy, const char *ufunc_name)
     };
 
     if (PyUFunc_AddLoopFromSpec(ufunc, &Spec) < 0) {
+        Py_DECREF(ufunc);
+        return -1;
+    }
+
+    if (quad_add_promoters(ufunc) < 0) {
         Py_DECREF(ufunc);
         return -1;
     }
