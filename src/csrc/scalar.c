@@ -429,47 +429,6 @@ QuadPrecision_get_imag(QuadPrecisionObject *self, void *closure)
     return (PyObject *)QuadPrecision_raw_new(self->backend);
 }
 
-static PyObject *
-QuadPrecision_conjugate(QuadPrecisionObject *self, PyObject *args)
-{
-    PyArrayObject *out = NULL;
-    if (!PyArg_ParseTuple(args, "|O&:conjugate", PyArray_OutputConverter, &out)) {
-        return NULL;
-    }
-    if (out == NULL) {
-        return Py_NewRef(self);
-    }
-
-    // TODO: Use PyArray_Conjugate when NumPy >= 2.5 is required. NumPy 2.4
-    // can dispatch Quad through a ufunc instead of copying its unchanged value.
-    if (PyArray_FailUnlessWriteable(out, "output array") < 0) {
-        return NULL;
-    }
-    PyArray_Descr *dtype = (PyArray_Descr *)new_quaddtype_instance(self->backend);
-    if (dtype == NULL) {
-        return NULL;
-    }
-    if (!PyArray_CanCastTypeTo(dtype, PyArray_DESCR(out), NPY_SAME_KIND_CASTING)) {
-        PyErr_Format(PyExc_TypeError,
-                     "Cannot cast conjugate result from %R to %R with casting='same_kind'",
-                     dtype, PyArray_DESCR(out));
-        Py_DECREF(dtype);
-        return NULL;
-    }
-    PyArrayObject *array = (PyArrayObject *)PyArray_SimpleNewFromDescr(0, NULL, dtype);
-    if (array == NULL) {
-        return NULL;
-    }
-    quad_value_store(PyArray_BYTES(array), &self->value, self->backend);
-    int copy_result = PyArray_CopyInto(out, array);
-    Py_DECREF(array);
-    if (copy_result < 0) {
-        return NULL;
-    }
-    Py_INCREF(out);
-    return PyArray_Return(out);
-}
-
 // Method implementations for float compatibility
 static PyObject *
 QuadPrecision_is_integer(QuadPrecisionObject *self, PyObject *Py_UNUSED(ignored))
@@ -815,10 +774,6 @@ QuadPrecision_from_raw_bytes(PyObject *Py_UNUSED(module), PyObject *args)
 }
 
 static PyMethodDef QuadPrecision_methods[] = {
-    {"conj", (PyCFunction)QuadPrecision_conjugate, METH_VARARGS,
-     "Return the complex conjugate."},
-    {"conjugate", (PyCFunction)QuadPrecision_conjugate, METH_VARARGS,
-     "Return the complex conjugate."},
     {"is_integer", (PyCFunction)QuadPrecision_is_integer, METH_NOARGS,
      "Return True if the value is an integer."},
     {"as_integer_ratio", (PyCFunction)QuadPrecision_as_integer_ratio, METH_NOARGS,
