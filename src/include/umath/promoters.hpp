@@ -57,15 +57,7 @@ quad_ufunc_promoter(PyObject *ufunc_obj, PyArray_DTypeMeta *const op_dtypes[],
     PyUFuncObject *ufunc = (PyUFuncObject *)ufunc_obj;
     int nargs = ufunc->nargs;
 
-    // Handle the special case for reductions
-    if (op_dtypes[0] == NULL) {
-        assert(ufunc->nin == 2 && ufunc->nout == 1); /* must be reduction */
-        for (int i = 0; i < 3; i++) {
-            Py_INCREF(op_dtypes[1]);
-            new_op_dtypes[i] = op_dtypes[1];
-        }
-        return 0;
-    }
+    assert(op_dtypes[0] != NULL);
 
     PyArray_DTypeMeta *common_dtype = signature[ufunc->nin];
     for (int i = ufunc->nin + 1; i < nargs; i++) {

@@ -273,16 +273,7 @@ NPY_NO_EXPORT int
 comparison_ufunc_promoter(PyObject *ufunc_obj, PyArray_DTypeMeta *const op_dtypes[],
                           PyArray_DTypeMeta *const signature[], PyArray_DTypeMeta *new_op_dtypes[])
 {
-    // Reduction: accumulator is Bool, element is QuadPrecDType, output is Bool
-    if (op_dtypes[0] == NULL) {
-        Py_INCREF(&PyArray_BoolDType);
-        new_op_dtypes[0] = &PyArray_BoolDType;
-        Py_INCREF(op_dtypes[1]);
-        new_op_dtypes[1] = op_dtypes[1];
-        Py_INCREF(&PyArray_BoolDType);
-        new_op_dtypes[2] = &PyArray_BoolDType;
-        return 0;
-    }
+    assert(op_dtypes[0] != NULL);
 
     PyUFuncObject *ufunc = (PyUFuncObject *)ufunc_obj;
     if (quad_ufunc_has_object_input(ufunc, op_dtypes)) {
