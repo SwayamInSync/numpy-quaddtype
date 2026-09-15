@@ -1,4 +1,5 @@
-from typing import Any, Literal, TypeAlias, final, overload
+from collections.abc import Buffer
+from typing import Any, Literal, SupportsIndex, TypeAlias, final, overload
 import builtins
 import numpy as np
 from numpy._typing import _128Bit  # pyright: ignore[reportPrivateUsage]
@@ -190,6 +191,10 @@ def get_sleef_constant(
         "resolution",
     ],
     /,
+) -> QuadPrecision: ...
+
+def from_raw_bytes(
+    data: Buffer, backend: _Backend = "sleef", ld_format: SupportsIndex = -1, /
 ) -> QuadPrecision: ...
 
 def set_num_threads(num_threads: int, /) -> None: ...

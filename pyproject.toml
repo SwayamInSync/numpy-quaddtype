@@ -4,7 +4,7 @@ requires = [
     "meson-python>=0.18.0",
     "wheel",
     "cmake",
-    "numpy>=2.4"
+    "numpy>=2.5.3"
 ]
 build-backend = "mesonpy"
 
@@ -20,16 +20,15 @@ maintainers = [{name = "NumPy Developers", email = "numpy-discussion@python.org"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
     "Programming Language :: Python :: Free Threading",
     "Typing :: Typed",
 ]
-requires-python = ">=3.11.0"
+requires-python = ">=3.12"
 dependencies = [
-    "numpy>=2.4"
+    "numpy>=2.5.3"
 ]
 
 [project.optional-dependencies]

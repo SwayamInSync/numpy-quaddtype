@@ -19,14 +19,14 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: ">=3.11.0"
+          python-version: ">=3.12"
 
       - name: Install cibuildwheel
         run: pip install cibuildwheel==3.1.4
 
       - name: Build wheels
         env:
-          CIBW_BUILD: "cp311-manylinux_x86_64 cp312-manylinux_x86_64 cp313-manylinux_x86_64 cp314-manylinux_x86_64 cp314t-manylinux_x86_64"
+          CIBW_BUILD: "cp312-manylinux_x86_64 cp313-manylinux_x86_64 cp314-manylinux_x86_64 cp314t-manylinux_x86_64"
           CIBW_ENABLE: cpython-prerelease cpython-freethreading
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
           CIBW_BUILD_VERBOSITY: "3"
@@ -68,7 +68,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: ">=3.11.0"
+          python-version: ">=3.12"
 
       - name: Install dependencies
         run: |
@@ -88,7 +88,7 @@ jobs:
 
       - name: Build wheels
         env:
-          CIBW_BUILD: "cp311-* cp312-* cp313-* cp314-* cp314t-*"
+          CIBW_BUILD: "cp312-* cp313-* cp314-* cp314t-*"
           CIBW_ENABLE: cpython-prerelease cpython-freethreading
           # CIBW_ARCHS_MACOS: ${{ matrix.os == 'macos-13' && 'x86_64' || 'arm64' }}
           CIBW_BUILD_VERBOSITY: "3"
@@ -135,7 +135,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: ">=3.11.0"
+          python-version: ">=3.12"
           architecture: ${{ matrix.architecture }}
 
       - name: Install CMake
@@ -149,7 +149,7 @@ jobs:
 
       - name: Build wheels
         env:
-          CIBW_BUILD: "cp311-* cp312-* cp313-* cp314-* cp314t-*"
+          CIBW_BUILD: "cp312-* cp313-* cp314-* cp314t-*"
           CIBW_ENABLE: cpython-prerelease cpython-freethreading
           CIBW_ARCHS_WINDOWS: ${{ matrix.architecture == 'x86' && 'x86' || 'AMD64' }}
           CIBW_BUILD_VERBOSITY: "3"
@@ -177,7 +177,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: ">=3.11.0"
+          python-version: ">=3.12"
 
       - name: Install system dependencies
         run: |

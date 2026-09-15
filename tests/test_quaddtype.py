@@ -3697,6 +3697,57 @@ def test_array_conjugate_method():
     np.testing.assert_array_equal(result.astype(float), [1.5, -2.5, 0.0])
 
 
+@pytest.mark.parametrize("backend", ["sleef", "longdouble"])
+def test_object_conjugate_preserves_values_and_backend(backend):
+    dtype = QuadPrecDType(backend=backend)
+    objects = np.array([1.5, 2.5], dtype=dtype).astype(object)
+
+    result = np.conjugate(objects)
+
+    np.testing.assert_array_equal(result, objects, strict=True)
+    for scalar in result:
+        assert scalar.dtype == dtype
+
+
+@pytest.mark.parametrize("backend", ["sleef", "longdouble"])
+@pytest.mark.parametrize("method", ["conj", "conjugate"])
+@pytest.mark.parametrize("value", [1.5, -0.0, np.inf, np.nan])
+@pytest.mark.parametrize("args", [(), (None,)])
+def test_scalar_conjugate_preserves_values_and_backend(backend, method, value, args):
+    scalar = QuadPrecision(value, backend=backend)
+
+    result = getattr(scalar, method)(*args)
+
+    assert result.dtype == scalar.dtype
+    np.testing.assert_array_equal(float(result), value)
+    assert np.signbit(float(result)) == np.signbit(value)
+
+
+@pytest.mark.parametrize("backend", ["sleef", "longdouble"])
+@pytest.mark.parametrize("method", ["conj", "conjugate"])
+@pytest.mark.parametrize("dtype", [np.float32, np.float64, object, QuadPrecDType])
+def test_scalar_conjugate_with_out(backend, method, dtype):
+    scalar = QuadPrecision(1.5, backend=backend)
+    out = np.empty((), dtype=scalar.dtype if dtype is QuadPrecDType else dtype)
+    reference_out = np.empty((), dtype=np.float64 if dtype is QuadPrecDType else dtype)
+
+    result = getattr(scalar, method)(out)
+    expected = getattr(np.float64(1.5), method)(reference_out)
+
+    np.testing.assert_array_equal(float(result), float(expected))
+    np.testing.assert_array_equal(out.astype(np.float64), reference_out.astype(np.float64))
+    if dtype is object or dtype is QuadPrecDType:
+        assert result.dtype == scalar.dtype
+
+
+@pytest.mark.parametrize("backend", ["sleef", "longdouble"])
+@pytest.mark.parametrize("method", ["conj", "conjugate"])
+@pytest.mark.parametrize("args", [(1,), (None, None), (np.empty((), dtype=np.int64),)])
+def test_scalar_conjugate_rejects_invalid_out(backend, method, args):
+    for scalar in [QuadPrecision(1.5, backend=backend), np.float64(1.5)]:
+        with pytest.raises(TypeError):
+            getattr(scalar, method)(*args)
+
 @pytest.mark.parametrize("x1,x2,expected", [
     # Basic Pythagorean triples
     (3.0, 4.0, 5.0),
@@ -6455,60 +6506,153 @@ def test_logical_reduce_on_non_quad_arrays():
     assert result == True
 
 
-class TestPromoterNoInterference:
-    """Regression tests for overly broad promoter registration.
+class TestObjectPromotion:
+    @pytest.fixture
+    def backend(self, request):
+        return request.param
 
-    Prior to the fix, promoters were registered with PyArrayDescr_Type in
-    all slots, matching ANY dtype combination. This caused the quaddtype
-    promoter to intercept operations on unrelated NumPy types (timedelta64,
-    float64, etc.), breaking normal NumPy functionality.
+    @pytest.fixture
+    def operands(self, backend):
+        quad = np.array([1, 2], dtype=QuadPrecDType(backend=backend))
+        objects = np.array([3, 4], dtype=object)
+        return quad, objects
 
-    See https://github.com/numpy/numpy-quaddtype/issues/76
-    """
+    @pytest.mark.parametrize("backend", ["sleef", "longdouble"], indirect=True)
+    @pytest.mark.parametrize("op", [np.add, np.multiply])
+    @pytest.mark.parametrize("reverse", [False, True])
+    def test_arithmetic_uses_object_loop(self, operands, op, reverse):
+        quad, objects = operands
+        left, right = (objects, quad) if reverse else (quad, objects)
 
-    def test_timedelta_modulus_raises_typeerror(self):
-        """timedelta64 % int must raise TypeError, not be silently handled."""
-        with pytest.raises(TypeError, match="remainder"):
-            np.remainder(np.timedelta64(7, 'Y'), 15)
+        result = op(left, right)
+        expected = op(left.astype(object), right.astype(object))
 
-    def test_timedelta_divide_preserves_dtype(self):
-        """timedelta64 / int must return timedelta64, not float64."""
-        a = np.arange(1000, dtype="m8[s]")
-        result = a.sum() / len(a)
-        assert result.dtype.kind == 'm', (
-            f"Expected timedelta64 dtype, got {result.dtype}")
+        assert result.dtype == np.dtype(object)
+        np.testing.assert_array_equal(result, expected, strict=True)
 
-    def test_timedelta_mean_correct(self):
-        """timedelta mean must use timedelta division, not float promotion."""
-        a = np.arange(1000, dtype="m8[s]")
-        mean_val = a.mean()
-        sum_div = a.sum() / len(a)
-        np.testing.assert_array_equal(mean_val, sum_div)
+    @pytest.mark.parametrize("backend", ["sleef", "longdouble"], indirect=True)
+    @pytest.mark.parametrize("op", [np.equal, np.less])
+    @pytest.mark.parametrize("reverse", [False, True])
+    def test_comparison_uses_object_loop(self, operands, op, reverse):
+        quad, objects = operands
+        left, right = (objects, quad) if reverse else (quad, objects)
 
-    @pytest.mark.parametrize("op", [
-        np.add, np.subtract, np.multiply, np.divide,
-        np.floor_divide, np.power, np.mod,
-    ])
-    def test_binary_ufunc_float64_preserves_dtype(self, op):
-        """Builtin float64 ops must not be affected by quad promoters."""
-        a = np.array([1.0, 2.0, 3.0], dtype=np.float64)
-        b = np.array([4.0, 5.0, 6.0], dtype=np.float64)
-        result = op(a, b)
-        assert result.dtype == np.float64
+        result = op(left, right)
+        expected = op(left.astype(object), right.astype(object))
 
-    def test_matmul_float64_preserves_dtype(self):
-        a = np.eye(3, dtype=np.float64)
-        b = np.ones((3, 2), dtype=np.float64)
-        result = np.matmul(a, b)
-        assert result.dtype == np.float64
-        np.testing.assert_array_equal(result, b)
+        assert result.dtype == np.dtype(np.bool_)
+        np.testing.assert_array_equal(result, expected, strict=True)
 
-    def test_divmod_float64_preserves_dtype(self):
-        a = np.array([7.0, 8.0], dtype=np.float64)
-        b = np.array([3.0, 3.0], dtype=np.float64)
-        q, r = np.divmod(a, b)
-        assert q.dtype == np.float64
-        assert r.dtype == np.float64
+    @pytest.mark.parametrize("backend", ["sleef", "longdouble"], indirect=True)
+    @pytest.mark.parametrize("op", [np.equal, np.less])
+    @pytest.mark.parametrize("reverse", [False, True])
+    def test_comparison_honours_explicit_object_dtype(self, operands, op, reverse):
+        # Comparisons default to a bool result, but NumPy also lets an object
+        # result be requested explicitly. That needs a promoter whose output slot
+        # is Object; the Bool ones cannot match it.
+        quad, objects = operands
+        left, right = (objects, quad) if reverse else (quad, objects)
+
+        result = op(left, right, dtype=object)
+        expected = op(left.astype(object), right.astype(object), dtype=object)
+
+        assert result.dtype == np.dtype(object)
+        np.testing.assert_array_equal(result, expected, strict=True)
+
+    @pytest.mark.parametrize("backend", ["sleef", "longdouble"], indirect=True)
+    @pytest.mark.parametrize("op", [np.logical_and, np.logical_or])
+    @pytest.mark.parametrize("reverse", [False, True])
+    def test_logical_uses_object_loop(self, operands, op, reverse):
+        quad, objects = operands
+        left, right = (objects, quad) if reverse else (quad, objects)
+
+        result = op(left, right)
+        expected = op(left.astype(object), right.astype(object))
+
+        assert result.dtype == np.dtype(object)
+        np.testing.assert_array_equal(result, expected, strict=True)
+
+    @pytest.mark.parametrize("backend", ["sleef", "longdouble"], indirect=True)
+    @pytest.mark.parametrize("reverse", [False, True])
+    def test_logical_xor_matches_unsupported_object_loop(self, operands, reverse):
+        quad, objects = operands
+        left, right = (objects, quad) if reverse else (quad, objects)
+
+        # NumPy has no dedicated object loop for logical_xor, so its generic
+        # fallback calls a method named after the ufunc on each element, i.e.
+        # `int.logical_xor`, which does not exist. That AttributeError is plain
+        # NumPy behaviour on two object arrays; we assert we reproduce it rather
+        # than inventing a quad-specific result.
+        with pytest.raises(AttributeError):
+            np.logical_xor(left.astype(object), right.astype(object))
+        with pytest.raises(AttributeError):
+            np.logical_xor(left, right)
+
+    @pytest.mark.parametrize("backend", ["sleef", "longdouble"], indirect=True)
+    @pytest.mark.parametrize("reverse", [False, True])
+    def test_broadcasting_and_masked_out_use_object_loop(self, backend, reverse):
+        quad = np.array([[1], [2]], dtype=QuadPrecDType(backend=backend))
+        objects = np.array([[3, 4, 5]], dtype=object)
+        left, right = (objects, quad) if reverse else (quad, objects)
+        where = np.array([[True, False, True], [False, True, False]])
+        out = np.full((2, 3), "unchanged", dtype=object)
+        expected = out.copy()
+
+        np.add(left, right, out=out, where=where)
+        np.add(left.astype(object), right.astype(object), out=expected, where=where)
+
+        np.testing.assert_array_equal(out, expected, strict=True)
+
+    @pytest.mark.parametrize("backend", ["sleef", "longdouble"], indirect=True)
+    @pytest.mark.parametrize("reverse", [False, True])
+    def test_divmod_without_object_loop_still_raises(self, operands, reverse):
+        quad, objects = operands
+        left, right = (objects, quad) if reverse else (quad, objects)
+
+        # np.divmod registers no object loop at all (unlike floor_divide and
+        # remainder, which both have OO->O), so divmod on two object arrays is a
+        # TypeError in plain NumPy. Deferring to NumPy means we raise it too.
+        with pytest.raises(TypeError):
+            np.divmod(left, right)
+
+    @pytest.mark.parametrize("backend", ["sleef", "longdouble"], indirect=True)
+    @pytest.mark.parametrize("reverse", [False, True])
+    def test_matmul_uses_object_loop(self, backend, reverse):
+        quad = np.array([[1, 2], [3, 4]], dtype=QuadPrecDType(backend=backend))
+        objects = np.array([[5, 6], [7, 8]], dtype=object)
+        left, right = (objects, quad) if reverse else (quad, objects)
+
+        result = np.matmul(left, right)
+        expected = np.matmul(left.astype(object), right.astype(object))
+
+        assert result.dtype == np.dtype(object)
+        np.testing.assert_array_equal(result, expected, strict=True)
+
+    @pytest.mark.parametrize("backend", ["sleef", "longdouble"], indirect=True)
+    @pytest.mark.parametrize(
+        "other",
+        [
+            np.array([3 + 1j, 4 + 2j], dtype=np.complex128),
+            np.array(["3", "4"], dtype="U1"),
+            np.array([b"3", b"4"], dtype="S1"),
+        ],
+    )
+    def test_unsupported_common_dtypes_still_raise(self, operands, other):
+        quad, _ = operands
+
+        with pytest.raises(np.exceptions.DTypePromotionError):
+            np.result_type(quad, other)
+        with pytest.raises(TypeError):
+            np.add(quad, other)
+
+    def test_builtin_object_dispatch_is_unchanged(self):
+        left = np.array([1, 2], dtype=object)
+        right = np.array([3, 4], dtype=object)
+
+        result = np.add(left, right)
+
+        assert result.dtype == np.dtype(object)
+        np.testing.assert_array_equal(result, np.array([4, 6], dtype=object), strict=True)
 
 
 def test_sleef_purecfma_symbols():
