@@ -102,18 +102,19 @@ PyInit__quaddtype_main(void)
     PyUnstable_Module_SetGIL(m, Py_MOD_GIL_NOT_USED);
 #endif
 
-    init_sleef_locks();
+    if (init_sleef_locks() < 0)
+        goto error;
 
     if (init_quadprecision_scalar() < 0)
         goto error;
 
-    if (PyModule_AddObject(m, "QuadPrecision", (PyObject *)&QuadPrecision_Type) < 0)
+    if (PyModule_AddObjectRef(m, "QuadPrecision", (PyObject *)&QuadPrecision_Type) < 0)
         goto error;
 
     if (init_quadprec_dtype() < 0)
         goto error;
 
-    if (PyModule_AddObject(m, "QuadPrecDType", (PyObject *)&QuadPrecDType) < 0)
+    if (PyModule_AddObjectRef(m, "QuadPrecDType", (PyObject *)&QuadPrecDType) < 0)
         goto error;
 
     if (init_quad_umath() < 0) {

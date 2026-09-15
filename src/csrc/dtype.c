@@ -628,8 +628,7 @@ QuadPrecDType_new(PyTypeObject *NPY_UNUSED(cls), PyObject *args, PyObject *kwds)
         return NULL;
     }
 
-    return (PyObject *)quadprec_discover_descriptor_from_pyobject(
-            &QuadPrecDType, (PyObject *)QuadPrecision_raw_new(backend));
+    return (PyObject *)new_quaddtype_instance(backend);
 }
 
 static PyObject *
@@ -707,10 +706,12 @@ init_quadprec_dtype(void)
     ((PyTypeObject *)&QuadPrecDType)->tp_base = &PyArrayDescr_Type;
 
     if (PyType_Ready((PyTypeObject *)&QuadPrecDType) < 0) {
+        free_casts();
         return -1;
     }
 
     if (PyArrayInitDTypeMeta_FromSpec(&QuadPrecDType, &QuadPrecDType_DTypeSpec) < 0) {
+        free_casts();
         return -1;
     }
 

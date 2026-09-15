@@ -26,6 +26,10 @@ quad_binary_op_resolve_descriptors(PyObject *self, PyArray_DTypeMeta *const dtyp
                                    PyArray_Descr *const given_descrs[],
                                    PyArray_Descr *loop_descrs[], npy_intp *NPY_UNUSED(view_offset))
 {
+    for (int i = 0; i < 3; i++) {
+        loop_descrs[i] = NULL;
+    }
+
     QuadPrecDTypeObject *descr_in1 = (QuadPrecDTypeObject *)given_descrs[0];
     QuadPrecDTypeObject *descr_in2 = (QuadPrecDTypeObject *)given_descrs[1];
     QuadBackendType target_backend;
@@ -45,7 +49,7 @@ quad_binary_op_resolve_descriptors(PyObject *self, PyArray_DTypeMeta *const dtyp
         if (((QuadPrecDTypeObject *)given_descrs[i])->backend != target_backend) {
             loop_descrs[i] = (PyArray_Descr *)new_quaddtype_instance(target_backend);
             if (!loop_descrs[i]) {
-                return (NPY_CASTING)-1;
+                return quad_resolve_descrs_fail(loop_descrs, 3);
             }
         }
         else {
@@ -58,7 +62,7 @@ quad_binary_op_resolve_descriptors(PyObject *self, PyArray_DTypeMeta *const dtyp
     if (given_descrs[2] == NULL) {
         loop_descrs[2] = (PyArray_Descr *)new_quaddtype_instance(target_backend);
         if (!loop_descrs[2]) {
-            return (NPY_CASTING)-1;
+            return quad_resolve_descrs_fail(loop_descrs, 3);
         }
     }
     else {
@@ -66,7 +70,7 @@ quad_binary_op_resolve_descriptors(PyObject *self, PyArray_DTypeMeta *const dtyp
         if (descr_out->backend != target_backend) {
             loop_descrs[2] = (PyArray_Descr *)new_quaddtype_instance(target_backend);
             if (!loop_descrs[2]) {
-                return (NPY_CASTING)-1;
+                return quad_resolve_descrs_fail(loop_descrs, 3);
             }
         }
         else {
@@ -151,6 +155,10 @@ quad_binary_op_2out_resolve_descriptors(PyObject *self, PyArray_DTypeMeta *const
                                         PyArray_Descr *const given_descrs[],
                                         PyArray_Descr *loop_descrs[], npy_intp *NPY_UNUSED(view_offset))
 {
+    for (int i = 0; i < 4; i++) {
+        loop_descrs[i] = NULL;
+    }
+
     QuadPrecDTypeObject *descr_in1 = (QuadPrecDTypeObject *)given_descrs[0];
     QuadPrecDTypeObject *descr_in2 = (QuadPrecDTypeObject *)given_descrs[1];
     QuadBackendType target_backend;
@@ -170,7 +178,7 @@ quad_binary_op_2out_resolve_descriptors(PyObject *self, PyArray_DTypeMeta *const
         if (((QuadPrecDTypeObject *)given_descrs[i])->backend != target_backend) {
             loop_descrs[i] = (PyArray_Descr *)new_quaddtype_instance(target_backend);
             if (!loop_descrs[i]) {
-                return (NPY_CASTING)-1;
+                return quad_resolve_descrs_fail(loop_descrs, 4);
             }
         }
         else {
@@ -184,7 +192,7 @@ quad_binary_op_2out_resolve_descriptors(PyObject *self, PyArray_DTypeMeta *const
         if (given_descrs[i] == NULL) {
             loop_descrs[i] = (PyArray_Descr *)new_quaddtype_instance(target_backend);
             if (!loop_descrs[i]) {
-                return (NPY_CASTING)-1;
+                return quad_resolve_descrs_fail(loop_descrs, 4);
             }
         }
         else {
@@ -192,7 +200,7 @@ quad_binary_op_2out_resolve_descriptors(PyObject *self, PyArray_DTypeMeta *const
             if (descr_out->backend != target_backend) {
                 loop_descrs[i] = (PyArray_Descr *)new_quaddtype_instance(target_backend);
                 if (!loop_descrs[i]) {
-                    return (NPY_CASTING)-1;
+                    return quad_resolve_descrs_fail(loop_descrs, 4);
                 }
             }
             else {
@@ -288,6 +296,10 @@ quad_ldexp_resolve_descriptors(PyObject *self, PyArray_DTypeMeta *const dtypes[]
                                PyArray_Descr *const given_descrs[],
                                PyArray_Descr *loop_descrs[], npy_intp *NPY_UNUSED(view_offset))
 {
+    for (int i = 0; i < 3; i++) {
+        loop_descrs[i] = NULL;
+    }
+
     QuadPrecDTypeObject *descr_in1 = (QuadPrecDTypeObject *)given_descrs[0];
     QuadBackendType target_backend = descr_in1->backend;
 
@@ -297,19 +309,22 @@ quad_ldexp_resolve_descriptors(PyObject *self, PyArray_DTypeMeta *const dtypes[]
 
     // Input 1: Use NPY_INTP to match the registered PyArray_IntpDType
     loop_descrs[1] = PyArray_DescrFromType(NPY_INTP);
+    if (!loop_descrs[1]) {
+        return quad_resolve_descrs_fail(loop_descrs, 3);
+    }
 
     // Output: QuadPrecDType with same backend as input
     if (given_descrs[2] == NULL) {
         loop_descrs[2] = (PyArray_Descr *)new_quaddtype_instance(target_backend);
         if (!loop_descrs[2]) {
-            return (NPY_CASTING)-1;
+            return quad_resolve_descrs_fail(loop_descrs, 3);
         }
     } else {
         QuadPrecDTypeObject *descr_out = (QuadPrecDTypeObject *)given_descrs[2];
         if (descr_out->backend != target_backend) {
             loop_descrs[2] = (PyArray_Descr *)new_quaddtype_instance(target_backend);
             if (!loop_descrs[2]) {
-                return (NPY_CASTING)-1;
+                return quad_resolve_descrs_fail(loop_descrs, 3);
             }
         } else {
             Py_INCREF(given_descrs[2]);

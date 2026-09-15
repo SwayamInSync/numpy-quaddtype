@@ -20,6 +20,16 @@ extern PyArray_DTypeMeta QuadPrecDType;
 QuadPrecDTypeObject *
 new_quaddtype_instance(QuadBackendType backend);
 
+/* Fail a resolver; `loop_descrs` must be NULL-initialized by the caller. */
+static inline NPY_CASTING
+quad_resolve_descrs_fail(PyArray_Descr *loop_descrs[], int n)
+{
+    for (int i = 0; i < n; i++) {
+        Py_CLEAR(loop_descrs[i]);
+    }
+    return (NPY_CASTING)-1;
+}
+
 int
 init_quadprec_dtype(void);
 

@@ -13,6 +13,6 @@ extern PyMutex sleef_lock;
 #define UNLOCK_SLEEF PyMutex_Unlock(&sleef_lock)
 #endif
 
-void init_sleef_locks(void);
+int init_sleef_locks(void);
 
 #endif // _QUADDTYPE_LOCK_H
