@@ -263,8 +263,17 @@ git clean -ffxd
 
 ### Unreleased
 
+#### New features
+
+- `np.vecdot` is supported for both backends. With the SLEEF backend it uses
+  QuadBLAS for aligned operands with BLAS-compatible strides.
+- `np.matmul` supports the longdouble backend, using a strided loop until
+  QuadBLAS supports it. Previously it raised `NotImplementedError`.
+
 #### Backwards-incompatible changes
 
+- `np.matmul` with operands or `out=` of different backends raises
+  `TypeError` instead of `NotImplementedError`.
 - Values no longer move between the SLEEF and longdouble backends. Every
   operation that would combine or convert them now raises `TypeError`, with
   the message `Cannot mix QuadPrecision backends 'sleef' and 'longdouble'`,
