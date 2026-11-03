@@ -511,7 +511,7 @@ class TestMixedBackend:
         kwargs = {}
         if backend_out is not None:
             kwargs["out"] = np.zeros((2, 2), dtype=QuadPrecDType(backend=backend_out))
-        with pytest.raises(NotImplementedError, match="same backend"):
+        with pytest.raises(TypeError, match="Cannot mix QuadPrecision backends|Cannot cast ufunc"):
             np.matmul(A, B, **kwargs)
 
 
@@ -570,7 +570,7 @@ class TestMatmulLongdoubleBackend:
     def test_out(self, order):
         rng = np.random.default_rng(302)
         A_f, B_f = rng.standard_normal((4, 5)), rng.standard_normal((5, 3))
-        out = np.full((4, 3), 999, dtype=self.dtype, order=order)
+        out = np.full((4, 3), np.float64(999), dtype=self.dtype, order=order)
         assert self._check(A_f, B_f, out=out) is out
 
     def test_unaligned(self):
@@ -586,13 +586,22 @@ class TestMatmulLongdoubleBackend:
         assert not (A_q.flags.aligned or B_q.flags.aligned)
         self._check(A_f, B_f, A_q, B_q)
 
+    @pytest.mark.parametrize("quad_first", [True, False])
+    def test_numpy_operand(self, quad_first):
+        rng = np.random.default_rng(304)
+        A_f, B_f = rng.standard_normal((4, 5)), rng.standard_normal((5, 3))
+        if quad_first:
+            self._check(A_f, B_f, A_q=A_f.astype(self.dtype), B_q=B_f)
+        else:
+            self._check(A_f, B_f, A_q=A_f, B_q=B_f.astype(self.dtype))
+
     def test_output_padding_is_zeroed(self):
         if np.finfo(np.longdouble).nmant != 63 or self.dtype.itemsize != 16:
             pytest.skip("requires x87 80-bit long double stored in 16 bytes")
         storage = bytearray(b"\xa5" * 4 * self.dtype.itemsize)
         out = np.ndarray((2, 2), dtype=self.dtype, buffer=storage)
-        np.matmul(np.ones((2, 3), self.dtype), np.ones((3, 2), self.dtype), out=out)
-        assert np.all(out == 3)
+        np.matmul(np.ones((2, 3)).astype(self.dtype), np.ones((3, 2)).astype(self.dtype), out=out)
+        assert np.all(out == np.float64(3))
         for i in range(4):
             start = i * self.dtype.itemsize
             assert bytes(storage[start + 10:start + 16]) == bytes(6)
