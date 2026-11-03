@@ -122,7 +122,7 @@ def test_out(backend, out_layout):
     rng = np.random.default_rng(5)
     x, y = _random(rng, (6, 8)), _random(rng, (6, 8))
     dtype = QuadPrecDType(backend=backend)
-    out = np.full(12 if out_layout == "strided" else 6, 999, dtype=dtype)
+    out = np.full(12 if out_layout == "strided" else 6, np.float64(999), dtype=dtype)
     if out_layout == "strided":
         out = out[::2]
 
@@ -154,7 +154,7 @@ def test_unaligned_operands(backend):
 @pytest.mark.parametrize("shape", [(0,), (3, 0), (2, 1, 0)])
 def test_empty_core_dimension_is_zero(backend, shape):
     dtype = QuadPrecDType(backend=backend)
-    out = np.full(shape[:-1], 999, dtype=dtype)
+    out = np.full(shape[:-1], np.float64(999), dtype=dtype)
     np.vecdot(np.empty(shape, dtype), np.empty(shape, dtype), out=out)
     np.testing.assert_array_equal(out, np.zeros(shape[:-1], dtype=dtype))
 
@@ -203,11 +203,11 @@ def test_matches_matmul_for_vectors(backend, layout):
 ])
 @pytest.mark.parametrize("quad_first", [True, False])
 def test_builtin_operand_promotes_to_quad(backend, other, quad_first):
-    quad = _quad([1, 2, 3], "sleef")
+    quad = _quad([1, 2, 3], backend)
     x, y = (quad, other) if quad_first else (other, quad)
     result = np.vecdot(x, y)
-    assert result == QuadPrecision(32)
-    assert result.dtype == QuadPrecDType(backend="sleef")
+    assert result == QuadPrecision(32, backend=backend)
+    assert result.dtype == QuadPrecDType(backend=backend)
 
 
 @pytest.mark.parametrize("quad_first", [True, False])
@@ -230,18 +230,8 @@ def test_mixed_backends_raise(x_backend, y_backend, out_backend):
     kwargs = {}
     if out_backend is not None:
         kwargs["out"] = np.empty((), dtype=QuadPrecDType(backend=out_backend))
-    with pytest.raises(NotImplementedError, match="same backend"):
+    with pytest.raises(TypeError, match="Cannot mix QuadPrecision backends|Cannot cast ufunc"):
         np.vecdot(_quad([1, 2], x_backend), _quad([3, 4], y_backend), **kwargs)
-
-
-@pytest.mark.parametrize("quad_first", [True, False])
-def test_longdouble_with_builtin_operand_raises(quad_first):
-    # Builtin operands become SLEEF descriptors, which is a mixed-backend call (gh-113).
-    quad = _quad([1, 2], "longdouble")
-    other = np.array([3.0, 4.0])
-    x, y = (quad, other) if quad_first else (other, quad)
-    with pytest.raises(NotImplementedError, match="same backend"):
-        np.vecdot(x, y)
 
 
 @pytest.mark.parametrize("backend", BACKENDS)
