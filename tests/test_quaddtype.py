@@ -6751,3 +6751,92 @@ def test_pandas_strrep():
     assert df["col2"].dtype == QuadPrecDType()
     assert df["col1"].iloc[499] != QuadPrecision(499 * BIG_NUMBER)
     assert df["col2"].iloc[499] == QuadPrecision(499 * BIG_NUMBER)
+
+
+def _beyond_double(backend):
+    nmant = 112 if backend == "sleef" else np.finfo(np.longdouble).nmant
+    one = QuadPrecision(1, backend=backend)
+    return one + QuadPrecision(2.0, backend=backend) ** -nmant
+
+
+@pytest.mark.parametrize("backend", ["sleef", "longdouble"])
+class TestConstructorBackend:
+    def test_scalar_keeps_backend_and_value(self, backend):
+        x = _beyond_double(backend)
+        y = QuadPrecision(x)
+        assert y.dtype == QuadPrecDType(backend=backend)
+        assert y == x
+
+    def test_same_backend_copy_is_exact(self, backend):
+        x = _beyond_double(backend)
+        assert QuadPrecision(x, backend=backend) == x
+
+    def test_array_keeps_backend(self, backend):
+        dtype = QuadPrecDType(backend=backend)
+        arr = np.array([_beyond_double(backend)], dtype=dtype)
+        res = QuadPrecision(arr)
+        assert res.dtype == dtype
+        np.testing.assert_array_equal(res, arr, strict=True)
+
+    @pytest.mark.parametrize("func", [np.mean, np.var, np.std, np.median])
+    def test_scalar_reductions_keep_backend(self, backend, func):
+        dtype = QuadPrecDType(backend=backend)
+        arr = np.array(["0.1", "0.2", "0.3", "0.7"], dtype=dtype)
+        res = func(arr)
+        assert isinstance(res, QuadPrecision)
+        assert res.dtype == dtype
+
+    def test_mean_is_not_rounded_through_double(self, backend):
+        dtype = QuadPrecDType(backend=backend)
+        arr = np.array([_beyond_double(backend)] * 2, dtype=dtype)
+        assert arr.mean() == _beyond_double(backend)
+
+
+@pytest.mark.parametrize("value", [1.5, 3, "0.1", np.float32(2.5), np.int64(7)])
+def test_constructor_default_backend_is_sleef(value):
+    assert QuadPrecision(value).dtype == QuadPrecDType()
+
+
+def _other(backend):
+    return "longdouble" if backend == "sleef" else "sleef"
+
+
+def _cast_backend(value, src_backend, backend):
+    src = np.array([value], dtype=QuadPrecDType(backend=src_backend))
+    return src.astype(QuadPrecDType(backend=backend))[0]
+
+
+@pytest.mark.parametrize("backend", ["sleef", "longdouble"])
+class TestCrossBackendScalarConversion:
+    @pytest.mark.parametrize("value", ["1.5", "-0.0", "inf", "-inf", "nan"])
+    def test_setitem_converts(self, backend, value):
+        src = QuadPrecision(value, backend=_other(backend))
+        arr = np.zeros(1, dtype=QuadPrecDType(backend=backend))
+        arr[0] = src
+        np.testing.assert_array_equal(arr, np.array([float(value)], dtype=arr.dtype), strict=True)
+        assert np.signbit(arr[0]) == np.signbit(src)
+
+    def test_setitem_matches_cast(self, backend):
+        src = _beyond_double(_other(backend))
+        arr = np.zeros(1, dtype=QuadPrecDType(backend=backend))
+        arr[0] = src
+        assert arr[0] == _cast_backend(src, _other(backend), backend)
+
+    def test_array_from_list_of_other_backend(self, backend):
+        src = QuadPrecision(1, backend=_other(backend))
+        arr = np.array([QuadPrecision(2, backend=backend), src], dtype=QuadPrecDType(backend=backend))
+        np.testing.assert_array_equal(arr, np.array([2, 1], dtype=arr.dtype), strict=True)
+
+    def test_constructor_matches_cast(self, backend):
+        src = _beyond_double(_other(backend))
+        res = QuadPrecision(src, backend=backend)
+        assert res.dtype == QuadPrecDType(backend=backend)
+        assert res == _cast_backend(src, _other(backend), backend)
+
+
+def test_constructor_from_numpy_longdouble_keeps_precision():
+    nmant = np.finfo(np.longdouble).nmant
+    value = np.longdouble(1) + np.longdouble(2) ** -nmant
+    res = QuadPrecision(value, backend="longdouble")
+    assert res == _beyond_double("longdouble")
+    assert QuadPrecision(value) == _cast_backend(res, "longdouble", "sleef")
