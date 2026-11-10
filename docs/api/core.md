@@ -5,7 +5,7 @@ The fundamental types provided by NumPy QuadDType.
 ## Quad Precision Value
 
 ```{eval-rst}
-.. class:: numpy_quaddtype.QuadPrecision(value, backend="sleef")
+.. class:: numpy_quaddtype.QuadPrecision(value[, backend])
 
    A quad-precision (128-bit) floating-point scalar.
 
@@ -16,14 +16,17 @@ The fundamental types provided by NumPy QuadDType.
    :param value: The value to convert to quad precision. It can be:
 
        - ``float`` or ``int``: Python numeric types
-       - ``str``: String representation for maximum precision
-       - ``bytes``: Raw 16-byte representation
-       - ``numpy.floating`` or ``numpy.integer``: NumPy numeric types
-       - ``QuadPrecision``: Another QuadPrecision value
-   :type value: float, int, str, bytes, numpy scalar, or QuadPrecision
+       - ``str`` or ``bytes``: Text representation, for maximum precision
+       - ``numpy.floating`` or ``numpy.integer``: NumPy numeric types;
+         ``numpy.longdouble`` is converted like a ``"longdouble"`` QuadPrecision
+       - ``QuadPrecision``: Another QuadPrecision value, converted if its
+         backend differs
+       - Array-like: returns a ``numpy.ndarray`` of ``QuadPrecDType``
+   :type value: float, int, str, bytes, numpy scalar, QuadPrecision, or array-like
 
-   :param backend: Computation backend to use. Either ``"sleef"`` (default) 
-       or ``"longdouble"``.
+   :param backend: Computation backend to use. Either ``"sleef"`` or
+       ``"longdouble"``. Defaults to the backend of ``value`` when it is a
+       ``QuadPrecision`` scalar or ``QuadPrecDType`` array, else ``"sleef"``.
    :type backend: str, optional
 
    **Examples**

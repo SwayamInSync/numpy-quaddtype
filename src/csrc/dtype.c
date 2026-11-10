@@ -118,18 +118,17 @@ quadprec_discover_descriptor_from_pyobject(PyArray_DTypeMeta *NPY_UNUSED(cls), P
 static int
 quadprec_setitem(QuadPrecDTypeObject *descr, PyObject *obj, char *dataptr)
 {
-    QuadPrecisionObject *value;
     if (PyObject_TypeCheck(obj, &QuadPrecision_Type)) {
-        Py_INCREF(obj);
-        value = (QuadPrecisionObject *)obj;
-    }
-    else {
-        value = QuadPrecision_from_object(obj, descr->backend);
-        if (value == NULL) {
-            return -1;
-        }
+        QuadPrecisionObject *quad = (QuadPrecisionObject *)obj;
+        quad_value converted = quad_convert_backend(&quad->value, quad->backend, descr->backend);
+        quad_value_store(dataptr, &converted, descr->backend);
+        return 0;
     }
 
+    QuadPrecisionObject *value = QuadPrecision_from_object(obj, descr->backend);
+    if (value == NULL) {
+        return -1;
+    }
     quad_value_store(dataptr, &value->value, descr->backend);
 
     Py_DECREF(value);

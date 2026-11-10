@@ -87,6 +87,37 @@ quad_to_quad_resolve_descriptors(PyObject *NPY_UNUSED(self),
     return static_cast<NPY_CASTING>(NPY_NO_CASTING | NPY_SAME_VALUE_CASTING_FLAG);
 }
 
+// The one conversion between backends, shared by casts, setitem and the scalar constructor.
+extern "C" quad_value
+quad_convert_backend(const quad_value *in, QuadBackendType from, QuadBackendType to)
+{
+    quad_value out;
+    if (from == BACKEND_LONGDOUBLE && to == BACKEND_LONGDOUBLE) {
+        quad_value_set_longdouble(&out, in->longdouble_value);
+    }
+    else if (from == to) {
+        out = *in;
+    }
+    else if (from == BACKEND_SLEEF) {
+        quad_value_set_longdouble(&out, static_cast<long double>(cast_sleef_to_double(in->sleef_value)));
+    }
+    else {
+        long double ld = in->longdouble_value;
+        if (std::isnan(ld)) {
+            out.sleef_value = (!ld_signbit(&ld)) ? QUAD_PRECISION_NAN : QUAD_PRECISION_NEG_NAN;
+        }
+        else if (std::isinf(ld)) {
+            out.sleef_value = (ld > 0) ? QUAD_PRECISION_INF : QUAD_PRECISION_NINF;
+        }
+        else {
+            // memcpy avoids __float128 ABI issues on x86-64
+            Sleef_quad temp = Sleef_cast_from_doubleq1(static_cast<double>(ld));
+            std::memcpy(&out.sleef_value, &temp, sizeof(Sleef_quad));
+        }
+    }
+    return out;
+}
+
 // Helper function for quad-to-quad same_value check (inter-backend)
 // NOTE: the inter-backend uses `double` as intermediate,
 // so only values that can be exactly represented in double can pass same_value check
@@ -167,29 +198,8 @@ quad_to_quad_strided_loop(PyArrayMethod_Context *context, char *const data[],
         while (N--) {
             quad_value in_val;
             load_quad<Aligned>(in_ptr, backend_in, &in_val);
-            quad_value out_val;
-            if (backend_in == BACKEND_SLEEF) 
-            {
-              out_val.longdouble_value = static_cast<long double>(cast_sleef_to_double(in_val.sleef_value));
-            }
-            else 
-            {
-              long double ld = in_val.longdouble_value;
-              if (std::isnan(ld)) {
-                  out_val.sleef_value = (!ld_signbit(&ld)) ? QUAD_PRECISION_NAN : QUAD_PRECISION_NEG_NAN;
-              }
-              else if (std::isinf(ld)) {
-                  out_val.sleef_value = (ld > 0) ? QUAD_PRECISION_INF : QUAD_PRECISION_NINF;
-              }
-              else 
-              {
-                  // to prevent compiler optimizations, ABI handling issues with __float128 on x86-64 machines
-                  // won't be expensive as for fixed size compiler can optimize memcpy with movq
-                  Sleef_quad temp = Sleef_cast_from_doubleq1(static_cast<double>(ld));
-                  std::memcpy(&out_val.sleef_value, &temp, sizeof(Sleef_quad));
-              }
-            }
-            
+            quad_value out_val = quad_convert_backend(&in_val, backend_in, backend_out);
+
             // check same_value for inter-backend casts
             if(same_value_casting)
             {

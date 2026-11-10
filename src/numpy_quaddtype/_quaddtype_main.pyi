@@ -83,12 +83,12 @@ class QuadPrecDType(np.dtype[QuadPrecision]):  # type: ignore[misc]  # pyright: 
 @final
 class QuadPrecision(np.floating[_128Bit]):
     # NOTE: At runtime this constructor also accepts array-likes, for which it returns
-    # `np.ndarray` instances with `dtype=QuadPrecDType()`.
+    # `np.ndarray` instances with `dtype=QuadPrecDType(backend=...)`.
     # But because of mypy limitations, it is currently impossible to annotate
     # constructors that do not return instances of their class (or a subclass thereof).
     # See https://github.com/python/mypy/issues/18343#issuecomment-2571784915
     @override
-    def __new__(cls, /, value: _IntoQuad, backend: _Backend = "sleef") -> Self: ...
+    def __new__(cls, /, value: _IntoQuad, backend: _Backend = ...) -> Self: ...
 
     # numpy.floating property overrides
 

@@ -8,10 +8,12 @@
 
 #define PY_ARRAY_UNIQUE_SYMBOL QuadPrecType_ARRAY_API
 #define NPY_NO_DEPRECATED_API NPY_2_0_API_VERSION
+#define NPY_TARGET_VERSION NPY_2_4_API_VERSION
 #define NO_IMPORT_ARRAY
 
 #include "numpy/arrayobject.h"
 #include "numpy/ndarraytypes.h"
+#include "numpy/arrayscalars.h"
 #include "numpy/dtype_api.h"
 
 #include "scalar.h"
@@ -20,6 +22,7 @@
 #include "dtype.h"
 #include "lock.h"
 #include "utilities.h"
+#include "casts.h"
 #include "constants.hpp"
 #include "pythoncapi_compat.h"
 
@@ -96,7 +99,26 @@ quad_from_py_int(PyObject *py_int, QuadBackendType backend, QuadPrecisionObject 
 
 QuadPrecisionObject *
 QuadPrecision_from_object(PyObject *value, QuadBackendType backend)
-{   
+{
+    // QuadPrecision and np.longdouble are NumPy floating scalars; the scalar path below would round them through double.
+    if (PyObject_TypeCheck(value, &QuadPrecision_Type)) {
+        QuadPrecisionObject *quad = (QuadPrecisionObject *)value;
+        QuadPrecisionObject *self = QuadPrecision_raw_new(backend);
+        if (self != NULL) {
+            self->value = quad_convert_backend(&quad->value, quad->backend, backend);
+        }
+        return self;
+    }
+    if (PyArray_IsScalar(value, LongDouble)) {
+        quad_value ld;
+        quad_value_set_longdouble(&ld, PyArrayScalar_VAL(value, LongDouble));
+        QuadPrecisionObject *self = QuadPrecision_raw_new(backend);
+        if (self != NULL) {
+            self->value = quad_convert_backend(&ld, BACKEND_LONGDOUBLE, backend);
+        }
+        return self;
+    }
+
     // Handle numpy scalars (np.int32, np.float32, etc.) before arrays
     // We need to check this before PySequence_Check because some numpy scalars are sequences
     if (PyArray_CheckScalar(value)) {
@@ -247,23 +269,6 @@ QuadPrecision_from_object(PyObject *value, QuadBackendType backend)
     else if (PyLong_Check(value)) {
         return quad_from_py_int(value, backend, self);
     }
-    else if (Py_TYPE(value) == &QuadPrecision_Type) {
-        Py_DECREF(self);  // discard the default one
-        QuadPrecisionObject *quad_obj = (QuadPrecisionObject *)value;
-        // create a new one with the same backend
-        QuadPrecisionObject *self = QuadPrecision_raw_new(quad_obj->backend);
-        if (self == NULL) {
-            return NULL;
-        }
-        if (quad_obj->backend == BACKEND_SLEEF) {
-            self->value.sleef_value = quad_obj->value.sleef_value;
-        }
-        else {
-            self->value.longdouble_value = quad_obj->value.longdouble_value;
-        }
-
-        return self;
-    }
     else {
         PyObject *type_str = PyObject_Str((PyObject *)Py_TYPE(value));
         if (type_str != NULL) {
@@ -298,7 +303,7 @@ static PyObject *
 QuadPrecision_new(PyTypeObject *cls, PyObject *args, PyObject *kwargs)
 {
     PyObject *value = NULL;
-    const char *backend_str = "sleef";
+    const char *backend_str = NULL;
     static char *kwlist[] = {"value", "backend", NULL};
 
     if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|Os", kwlist, &value, &backend_str)) {
@@ -306,7 +311,16 @@ QuadPrecision_new(PyTypeObject *cls, PyObject *args, PyObject *kwargs)
     }
 
     QuadBackendType backend = BACKEND_SLEEF;
-    if (strcmp(backend_str, "longdouble") == 0) {
+    if (backend_str == NULL) {
+        if (value != NULL && PyObject_TypeCheck(value, &QuadPrecision_Type)) {
+            backend = ((QuadPrecisionObject *)value)->backend;
+        }
+        else if (value != NULL && PyArray_Check(value) &&
+                 Py_TYPE(PyArray_DESCR((PyArrayObject *)value)) == (PyTypeObject *)&QuadPrecDType) {
+            backend = ((QuadPrecDTypeObject *)PyArray_DESCR((PyArrayObject *)value))->backend;
+        }
+    }
+    else if (strcmp(backend_str, "longdouble") == 0) {
         backend = BACKEND_LONGDOUBLE;
     }
     else if (strcmp(backend_str, "sleef") != 0) {
